@@ -8,6 +8,7 @@
 # Usage:
 #   bash scripts/pack-windows.sh
 #   bash scripts/pack-windows.sh --skip-build
+#   bash scripts/pack-windows.sh --with-exe   # also Bun-compile single occ.exe (like claude-code-src/feiyu.exe)
 #   NODE_VERSION=22.14.0 bash scripts/pack-windows.sh
 #
 set -euo pipefail
@@ -18,11 +19,13 @@ cd "$ROOT"
 NODE_VERSION="${NODE_VERSION:-20.19.4}"
 RG_VERSION="${RG_VERSION:-15.0.1}"
 SKIP_BUILD=0
+WITH_EXE=0
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
+    --with-exe) WITH_EXE=1 ;;
     -h|--help)
-      sed -n '2,20p' "$0"
+      sed -n '2,25p' "$0"
       exit 0
       ;;
   esac
@@ -232,6 +235,33 @@ git_commit=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)
 git_branch=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)
 EOF
 
+# --- optional single-file exe (Bun compile, same approach as claude-code-src) ---
+if [[ "$WITH_EXE" -eq 1 ]]; then
+  echo "==> compiling single-file occ.exe (Bun --compile bun-windows-x64)"
+  EXE_OUT="${ROOT}/dist/windows/occ.exe"
+  mkdir -p "$(dirname "$EXE_OUT")"
+  bun run scripts/build-occ-windows-exe.ts
+  if [[ -f "$EXE_OUT" ]]; then
+    cp "$EXE_OUT" "$STAGE/occ.exe"
+    # Prefer true exe when present; keep occ.cmd as fallback
+    cat > "$STAGE/README-EXE.txt" <<'EOF'
+Single-file occ.exe
+-------------------
+Built with Bun compile (target bun-windows-x64), same idea as
+claude-code-src → dist/windows/feiyu.exe / myai.exe.
+
+  occ.exe --version
+  occ.exe
+
+If occ.exe fails on your machine, use occ.cmd (Node portable runtime).
+Computer Use / some native modules may be stubbed in the single-file build.
+EOF
+    echo "    included occ.exe ($(du -h "$STAGE/occ.exe" | awk '{print $1}'))"
+  else
+    echo "    WARNING: occ.exe build did not produce $EXE_OUT"
+  fi
+fi
+
 # --- zip ---
 echo "==> creating zip"
 rm -f "$ZIP_PATH"
@@ -250,6 +280,12 @@ echo ""
 echo "Done."
 echo "  Folder: $STAGE"
 echo "  Zip:    $ZIP_PATH  ($SIZE)"
-echo ""
-echo "Copy the zip to a Windows machine, unzip, run occ.cmd"
+if [[ -f "$STAGE/occ.exe" ]]; then
+  echo "  Exe:    $STAGE/occ.exe"
+  echo ""
+  echo "Copy the zip to Windows, unzip, run occ.exe (or occ.cmd fallback)."
+else
+  echo ""
+  echo "Copy the zip to a Windows machine, unzip, run occ.cmd"
+fi
 echo "Optional PATH: add the unzipped folder to User Path (manual)."
