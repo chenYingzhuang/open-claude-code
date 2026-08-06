@@ -206,10 +206,30 @@ module.exports.default = stub;
 module.exports.__esModule = true;
 `
 
+// Features that break or bloat Bun --compile for Windows (circular init / native).
+// Portable coding + multi-model API remains enabled.
+const WINDOWS_COMPILE_EXCLUDE = new Set([
+  'WORKFLOW_SCRIPTS', // schema TDZ under compile (workflowInputSchema)
+  'VOICE_MODE', // native audio
+  'CHICAGO_MCP', // computer-use stack
+  'DAEMON',
+  'KAIROS',
+  'KAIROS_BRIEF',
+  'BG_SESSIONS',
+  'TEMPLATES',
+  'AGENT_TRIGGERS_REMOTE',
+])
+
 const envFeatures = Object.keys(process.env)
   .filter(k => k.startsWith('FEATURE_'))
   .map(k => k.replace('FEATURE_', ''))
-const features = [...new Set([...DEFAULT_BUILD_FEATURES, ...envFeatures])]
+const features = [
+  ...new Set(
+    [...DEFAULT_BUILD_FEATURES, ...envFeatures].filter(
+      f => !WINDOWS_COMPILE_EXCLUDE.has(f),
+    ),
+  ),
+]
 
 mkdirSync(dirname(outfile), { recursive: true })
 

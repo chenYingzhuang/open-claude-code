@@ -1,5 +1,8 @@
 import { GrowthBook } from '@growthbook/growthbook'
-import { isEqual, memoize } from 'lodash-es'
+// Subpath imports: bare `lodash-es` named imports break under Bun --compile
+// (e.g. `default169 is not defined` on Windows). Keep per-function paths.
+import isEqual from 'lodash-es/isEqual.js'
+import memoize from 'lodash-es/memoize.js'
 import {
   registerFeatureGateHost,
   type FeatureGateHost,

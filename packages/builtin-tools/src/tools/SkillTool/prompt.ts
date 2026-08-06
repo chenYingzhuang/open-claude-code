@@ -1,4 +1,6 @@
-import { memoize } from 'lodash-es'
+// Subpath import required for Bun --compile (Windows): bare lodash-es
+// named imports can emit undefined `defaultN` helpers at runtime.
+import memoize from 'lodash-es/memoize.js'
 import type { Command } from 'src/commands.js'
 import {
   getCommandName,
