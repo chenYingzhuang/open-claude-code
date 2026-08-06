@@ -69,3 +69,4 @@ credentials.json
 .squash-tmp/
 .git.*-backup
 scripts/system-prompt-dump.txt
+release/
