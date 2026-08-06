@@ -135,11 +135,28 @@ export function sanitizeProfileModelSettings(
   return Object.keys(result).length > 0 ? result : undefined
 }
 
+/**
+ * Optional per-profile HTTP proxy policy (feature/provider-proxy-policy).
+ * Stored beside env so activation can switch proxy without process-wide shell
+ * launchers. See `src/utils/network/providerProxyPolicy.ts`.
+ */
+export type ProviderProfileProxy = {
+  /** direct = no proxy; http = use url; env = legacy process env only */
+  mode: 'direct' | 'http' | 'env'
+  url?: string
+  noProxy?: string
+}
+
 export type ProviderProfile = {
   name: string
   modelType: ProfileModelType
   /** Provider-managed env keys to write into settings.env on activation. */
   env: Record<string, string>
+  /**
+   * Optional proxy routing for this profile's model API traffic.
+   * Preserved across `/provider save` when already set on the profile.
+   */
+  proxy?: ProviderProfileProxy
   notes?: string
   /**
    * Per-tier thinking effort and context window at save time.
@@ -268,6 +285,8 @@ export function captureProfile(params: {
     name: params.name,
     modelType: params.modelType,
     env,
+    // Preserve manually configured proxy policy across saves (do not drop).
+    ...(params.existing?.proxy ? { proxy: params.existing.proxy } : {}),
     ...(params.notes ? { notes: params.notes } : {}),
     ...(modelSettings !== undefined ? { modelSettings } : {}),
     ...(models !== undefined ? { models } : {}),

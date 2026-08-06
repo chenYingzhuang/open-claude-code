@@ -14,6 +14,8 @@ import {
   getSettingsForSource,
   updateSettingsForSource,
 } from 'src/utils/settings/settings.js'
+// feature/provider-proxy-policy — apply per-profile proxy on switch
+import { syncProviderProxyPolicyFromProfile } from 'src/utils/network/providerProxyPolicy.js'
 import {
   buildActivationEnvPatch,
   buildActivationModelSettingsPatch,
@@ -170,6 +172,9 @@ export function activateProfile(
   // preserve_codex_official_auth_on_switch semantics).
   clearOpenAIClientCache()
   clearGrokClientCache()
+
+  // Switch model-API proxy routing with the profile (isolated feature module).
+  syncProviderProxyPolicyFromProfile(profile)
 
   file.active = name
   saveProfilesFile(file)
