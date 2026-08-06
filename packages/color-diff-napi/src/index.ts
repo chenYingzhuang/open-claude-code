@@ -17,8 +17,12 @@
  *   getSyntaxTheme always returns the default for the given Claude theme.
  */
 
-import { diffArrays } from 'diff'
+// Namespace import: bare `{ diffArrays } from 'diff'` breaks under Bun --compile
+// on Windows (runtime: "diffArrays is not defined").
+import * as Diff from 'diff'
 import hljs from 'highlight.js'
+
+const { diffArrays } = Diff
 import { basename, extname } from 'path'
 
 // Static import — createRequire(import.meta.url) fails in Bun --compile mode

@@ -1,4 +1,7 @@
-import { type StructuredPatchHunk, structuredPatch } from 'diff'
+import * as Diff from 'diff'
+import type { StructuredPatchHunk } from 'diff'
+
+const { structuredPatch } = Diff
 import { logEvent } from 'src/services/analytics/index.js'
 import { getLocCounter } from '../../bootstrap/state.js'
 import { addToTotalLinesChanged } from '../../cost-tracker.js'

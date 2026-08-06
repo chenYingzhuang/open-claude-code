@@ -1,4 +1,7 @@
-import { type StructuredPatchHunk, structuredPatch } from 'diff'
+import * as Diff from 'diff'
+import type { StructuredPatchHunk } from 'diff'
+
+const { structuredPatch } = Diff
 import { logError } from 'src/utils/telemetry/log.js'
 import { expandPath } from 'src/utils/filesystem/path.js'
 import { countCharInString } from '@open-claude-code/tool-runtime/stringUtils.js'

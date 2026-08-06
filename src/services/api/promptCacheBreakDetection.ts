@@ -1,7 +1,9 @@
 import type { BetaToolUnion } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
 import { createHmac, randomBytes, randomUUID } from 'crypto'
-import { createPatch } from 'diff'
+import * as Diff from 'diff'
+
+const { createPatch } = Diff
 import { rmSync } from 'fs'
 import { chmod, mkdir, mkdtemp, writeFile } from 'fs/promises'
 import { join } from 'path'

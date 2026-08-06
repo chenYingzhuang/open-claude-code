@@ -262,6 +262,14 @@ const result = await Bun.build({
             }
           }
 
+          // Prefer CJS entry for `diff` — ESM named imports break under compile.
+          if (args.path === 'diff') {
+            const cjs = resolve(root, 'node_modules/diff/libcjs/index.js')
+            if (pathExists(cjs)) {
+              return { path: cjs }
+            }
+          }
+
           if (!shouldStub(args.path, args.importer)) {
             return undefined
           }

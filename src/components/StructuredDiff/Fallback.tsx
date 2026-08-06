@@ -1,4 +1,7 @@
-import { diffWordsWithSpace, type StructuredPatchHunk } from 'diff';
+import * as Diff from 'diff';
+import type { StructuredPatchHunk } from 'diff';
+
+const { diffWordsWithSpace } = Diff;
 import * as React from 'react';
 import { useMemo } from 'react';
 import type { ThemeName } from 'src/utils/terminal/theme.js';

@@ -1,5 +1,7 @@
 import { createHash, type UUID } from 'crypto'
-import { diffLines } from 'diff'
+import * as Diff from 'diff'
+
+const { diffLines } = Diff
 import type { Stats } from 'fs'
 import {
   chmod,

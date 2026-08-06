@@ -1,7 +1,9 @@
 import { BIN_NAME, DISPLAY_NAME } from 'src/constants/brand.js'
 import { CONFIG_DIR_BASENAME, PROJECT_DIR_NAME } from 'src/config/paths.js'
 import { execFileSync } from 'child_process'
-import { diffLines } from 'diff'
+import * as Diff from 'diff'
+
+const { diffLines } = Diff
 import { constants as fsConstants, type Dirent } from 'fs'
 import {
   copyFile,
