@@ -138,10 +138,22 @@ export function activateProfile(
   // Global `effortLevel` is owned independently by `/effort`, not by a
   // provider profile. Activation therefore neither snapshots nor deletes it;
   // `/effort auto` is the explicit operation that exposes per-slot policy.
+  //
+  // Optional per-profile first-party allowlist (e.g. block DashScope ZHIPU/*
+  // marketplace relays when the qwen profile is active). Stored on the JSON
+  // profile even if the TypeScript shape does not declare it yet.
+  const availableModels = (
+    profile as ProviderProfile & {
+      availableModels?: string[]
+    }
+  ).availableModels
   const { error } = updateSettingsForSource('userSettings', {
     modelType: profile.modelType,
     env: envPatch,
     modelSettings: buildActivationModelSettingsPatch(profile),
+    ...(Array.isArray(availableModels)
+      ? { availableModels: availableModels.map(String) }
+      : { availableModels: undefined }),
   } as unknown as Parameters<typeof updateSettingsForSource>[1])
   if (error) return { error: `Failed to save settings: ${error.message}` }
 
