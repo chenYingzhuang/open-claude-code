@@ -87,6 +87,26 @@ function familyHasSpecificEntries(
 }
 
 /**
+ * Drop a user-requested model when it fails the availableModels allowlist.
+ *
+ * Returns `undefined` so callers fall through to the provider default chain
+ * (same contract as `getUserSpecifiedModelSetting`). Passes `null` through —
+ * that is the explicit "use default" sentinel from `--model default`.
+ * When no allowlist is configured, every non-empty string is kept.
+ */
+export function sanitizeModelAgainstAllowlist(
+  model: string | null | undefined,
+): string | null | undefined {
+  if (model === null || model === undefined) {
+    return model
+  }
+  if (!isModelAllowed(model)) {
+    return undefined
+  }
+  return model
+}
+
+/**
  * Check if a model is allowed by the availableModels allowlist in settings.
  * If availableModels is not set, all models are allowed.
  *

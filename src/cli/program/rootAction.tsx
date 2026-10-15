@@ -121,6 +121,7 @@ import {
   normalizeModelStringForAPI,
   parseUserSpecifiedModel,
 } from 'src/utils/model/model.js';
+import { sanitizeModelAgainstAllowlist } from 'src/utils/model/modelAllowlist.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js';
 import { getGlobExclusionsForPluginCache } from 'src/utils/plugins/orphanedPluginFilter.js';
 import { getInitialEffortSetting, parseEffortValue } from 'src/utils/model/effort.js';
@@ -1424,6 +1425,19 @@ export const rootAction: RootActionHandler = async (prompt, options) => {
     // settings slot — and on a provider where several aliases share one
     // checkpoint, the wrong one.
     effectiveModel = mainThreadAgentDefinition.model;
+  }
+
+  // --model / agent model must honor settings.availableModels. QueryEngine
+  // previously forwarded the raw string straight to the API, bypassing
+  // getUserSpecifiedModelSetting()'s allowlist filter and producing 400s
+  // (e.g. --model glm-5.3 under a deepseek profile). Drop the illegal id so
+  // the provider default chain runs instead.
+  const requestedModel = effectiveModel;
+  effectiveModel = sanitizeModelAgainstAllowlist(effectiveModel);
+  if (typeof requestedModel === 'string' && requestedModel.length > 0 && effectiveModel === undefined) {
+    process.stderr.write(
+      chalk.yellow(`Warning: model '${requestedModel}' is not in availableModels; using the default model instead.\n`),
+    );
   }
 
   setMainLoopModelOverride(effectiveModel);

@@ -70,6 +70,7 @@ import {
   getMainLoopModelSettingsSlot,
   parseUserSpecifiedModel,
 } from './utils/model/model.js'
+import { sanitizeModelAgainstAllowlist } from './utils/model/modelAllowlist.js'
 import { buildAvailabilityFallbackChain } from './utils/model/modelFallback.js'
 import { loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js'
 import {
@@ -265,8 +266,12 @@ export class QueryEngine {
     }
 
     const initialAppState = getAppState()
-    const initialMainLoopModel = userSpecifiedModel
-      ? parseUserSpecifiedModel(userSpecifiedModel)
+    // Honor availableModels even when a caller passes userSpecifiedModel
+    // directly (CLI --model / SDK). Without this gate the raw string reached
+    // the API and skipped getUserSpecifiedModelSetting()'s allowlist filter.
+    const allowedUserModel = sanitizeModelAgainstAllowlist(userSpecifiedModel)
+    const initialMainLoopModel = allowedUserModel
+      ? parseUserSpecifiedModel(allowedUserModel)
       : getMainLoopModel()
     // Collapsed here too, not only in query(): the SDK surface reports the
     // resolved chain, and a chain it advertises but can never use is a lie.
