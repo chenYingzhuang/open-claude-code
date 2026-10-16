@@ -1,7 +1,7 @@
 /**
  * Cross-compile open-claude-code to a single Windows x64 .exe via Bun.
  *
- * Pattern adapted from ~/work/myproject/tools/claude-code-src/scripts/build-myai-windows.ts
+ * Pattern adapted from ~/work/projects/tools/claude-code-src/scripts/build-myai-windows.ts
  * (Bun.build + compile.target = bun-windows-x64 + optional-package stubs).
  *
  * Usage:

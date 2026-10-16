@@ -127,9 +127,7 @@ export function applyRootOptions(program: CommanderCommand) {
         new Option(
           '--max-turns <turns>',
           'Maximum number of agentic turns in non-interactive mode. This will early exit the conversation after the specified number of turns. (only works with --print)',
-        )
-          .argParser(Number)
-          .hideHelp(),
+        ).argParser(Number),
       )
       .addOption(
         new Option(
