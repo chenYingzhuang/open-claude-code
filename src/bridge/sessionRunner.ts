@@ -285,9 +285,14 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
         deps.onDebug(`[bridge:session] Transcript log: ${transcriptPath}`)
       }
 
+      // Bridge children inherit the host's global ~/.occ MCP list. Servers
+      // without credentials (e.g. tencent doc/sheet/slide) retry forever and
+      // leave the web UI stuck on "Working…". --bare skips that startup path;
+      // callers that need MCP can pass --mcp-config explicitly later.
       const args = [
         ...deps.scriptArgs,
         '--print',
+        '--bare',
         '--sdk-url',
         opts.sdkUrl,
         '--session-id',
@@ -312,6 +317,14 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
         CLAUDE_CODE_ENVIRONMENT_KIND: 'bridge',
         ...(deps.sandbox && { CLAUDE_CODE_FORCE_SANDBOX: '1' }),
         CLAUDE_CODE_SESSION_ACCESS_TOKEN: opts.accessToken,
+        // occ must not inherit 8118 into bridge children (domestic models +
+        // rc.cornna.xyz are direct). Parent shells sometimes still export proxy.
+        HTTP_PROXY: undefined,
+        HTTPS_PROXY: undefined,
+        http_proxy: undefined,
+        https_proxy: undefined,
+        ALL_PROXY: undefined,
+        all_proxy: undefined,
         // v1: HybridTransport (WS reads + POST writes) to Session-Ingress.
         // Harmless in v2 mode — transportUtils checks CLAUDE_CODE_USE_CCR_V2 first.
         CLAUDE_CODE_POST_FOR_SESSION_INGRESS_V2: '1',
