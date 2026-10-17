@@ -176,7 +176,24 @@ export class WebSocketTransport implements Transport {
       // 'pong' is Bun-specific — not in DOM typings.
       ws.addEventListener('pong', this.onPong)
     } else {
-      const { default: WS } = await import('ws')
+      // Dynamic import keeps Bun builds on native WebSocket. Under Node the
+      // `ws` package must resolve from the install/farm node_modules — a bare
+      // runtime/dist copy without deps used to fail here silently (Opening
+      // logged, never Connected), so Remote Control accepted keep_alive POSTs
+      // but never received web user messages.
+      let WS: typeof import('ws').default
+      try {
+        ;({ default: WS } = await import('ws'))
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error)
+        logForDebugging(
+          `WebSocketTransport: Failed to import ws package: ${msg}. Node remote sessions need node_modules/ws (npm install or link into the runtime farm).`,
+          { level: 'error' },
+        )
+        logForDiagnosticsNoPII('error', 'cli_websocket_ws_import_failed')
+        this.state = 'closed'
+        throw error
+      }
       const ws = new WS(this.url.href, {
         headers,
         agent: getWebSocketProxyAgent(this.url.href),

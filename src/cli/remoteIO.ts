@@ -172,7 +172,18 @@ export class RemoteIO extends StructuredIO {
 
     // Start connection only after all callbacks are wired (setOnData above,
     // setOnEvent inside new CCRClient() when CCR v2 is enabled).
-    void this.transport.connect()
+    void this.transport.connect().catch((error: unknown) => {
+      // Node farm without `ws` used to reject here with no log — keep_alive
+      // POSTs still worked, so Remote Control looked Connected while web
+      // messages never arrived. Surface the failure explicitly.
+      logForDebugging(
+        `[remote-io] transport.connect failed: ${errorMessage(error)}`,
+        { level: 'error' },
+      )
+      logError(
+        new Error(`RemoteIO transport connect failed: ${errorMessage(error)}`),
+      )
+    })
 
     // Push a silent keep_alive frame on a fixed interval so upstream
     // proxies and the session-ingress layer don't GC an otherwise-idle
