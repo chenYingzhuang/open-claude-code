@@ -1,19 +1,18 @@
 # AGENTS.md
 
-**`CLAUDE.md` in this same directory is the single source of truth for how to work in this repo. Read it before doing anything else.**
+跨工具指针。本仓库（`src/` Git 根）的 AI 协同入口：
 
-This file exists because `AGENTS.md` is the cross-tool convention. It deliberately does not duplicate `CLAUDE.md`: it used to be a full copy, the two drifted 783 lines apart, and an audit found 21 factual claims in this file that were wrong (nonexistent workspace packages, a stale feature-flag count, commands whose scripts no longer exist). One source of truth, no copies.
+**[`docs/ai/README.md`](docs/ai/README.md)** — 项目 AI 协作指南（接活阅读契约与公共必读）。
 
-## The three things you must know up front
+工程约定按**章节**查阅同目录 [`CLAUDE.md`](CLAUDE.md)（路径隔离、构建、测试、Multi-API 等）。无具体任务时不要全文通读 `CLAUDE.md`；触及路径相关代码前必读其中「路径与隔离不变式」。
 
-1. **`bun run precheck` must pass with zero errors before you call any task done.** It runs `tsc --noEmit`, `biome check --fix` and the full `bun test` suite. Note it *rewrites your files* (`check:fix`, not `check`). Current baseline: typecheck clean, biome clean, 5945 pass / 10 skip / 0 fail.
+角色册：[`docs/ai/roles/`](docs/ai/roles/)；CAO 同步：[`docs/ai/rules/cao-sync.md`](docs/ai/rules/cao-sync.md)。
 
-2. **This is a Bun project, not Node.** All imports, builds and execution use Bun APIs (`engines.bun >= 1.3.11`). Do not reach for `npx` — use `bunx`. The pre-commit hook was broken for exactly this reason.
+## 托底红线
 
-3. **Commit messages follow Conventional Commits**: `<type>: <描述>`, where type is one of `feat` / `fix` / `docs` / `chore` / `refactor`.
+1. **`bun run precheck` 必须零错误** 才可声称任务完成（含 `tsc`、`biome check --fix`、全量测试；会改写文件）。
+2. **Bun 项目**（`engines.bun >= 1.3.11`）：用 `bunx`，不要默认 `npx`。
+3. 提交信息：Conventional Commits（`feat` / `fix` / `docs` / `chore` / `refactor`）。
+4. 密钥禁止写入仓库；配置路径经 `config/paths.ts` 派生。
 
-## Everything else
-
-See `CLAUDE.md` for the architecture map, the feature-flag system and the `bun:bundle` `feature()` positional constraint, the multi-API compatibility layers, the type rules (no `as any` in production code), and the testing conventions — including the cross-file `mock.module` pollution rules, which are easy to violate and hard to debug.
-
-See `CONTRIBUTING.md` for the workflow side: commit conventions, the cycle-count ratchet, PR expectations, and where each kind of document belongs.
+工作流与 PR 约定见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。

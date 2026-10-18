@@ -1,6 +1,6 @@
 # 贡献指南
 
-欢迎参与 open-claude-code（CLI 名 `occ`）。这份文档讲**怎么在这个仓库里干活**；架构、模块地图、feature flag 体系这些「代码是什么样」的问题，一律以 [`CLAUDE.md`](CLAUDE.md) 为准。
+欢迎参与 open-claude-code（CLI 名 `occ`）。这份文档讲**怎么在这个仓库里干活**；架构、模块地图、feature flag 体系这些「代码是什么样」的问题，一律以 [`CLAUDE.md`](CLAUDE.md) 为准（按章节按需读）。AI 接活阅读入口见 [`docs/ai/README.md`](docs/ai/README.md)。
 
 > 术语保留英文原文（feature flag、barrel、ratchet 等），因为它们同时是代码里的标识符，翻译会让搜索失效。
 

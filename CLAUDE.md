@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) and other AI coding agents when working with code in this repository.
 
+> **阅读方式（2026-10-18）**  
+> 接活入口与公共必读：[`docs/ai/README.md`](docs/ai/README.md)。  
+> 本文件是**工程细节真源**，按章节按需阅读。无具体任务的「了解项目」不要全文通读本文件。  
+> 工具若自动注入整份本文件：仍以指南入口为准，先建立项目地图，再按触及面深入对应章节。  
+> 旧映射：曾要求「开工前读完整 CLAUDE.md」→ 指南驱动分层阅读；旧 `docs/AI任务指南.md` 已删除，入口仅为 `docs/ai/README.md`。路径隔离、precheck、Bun、测试红线仍然有效。
+
 ## Project Overview
 
 This is a **reverse-engineered / decompiled** version of Anthropic's official Claude Code CLI tool. The goal is to restore core functionality while trimming secondary capabilities. Many modules are stubbed or feature-flagged off. TypeScript strict mode is enforced — **`bun run precheck` 必须零错误通过**（typecheck + lint fix + test，任务完成后必须运行）。提交用 Conventional Commits（`feat:`/`fix:`/`docs:`/`chore:`/`refactor:` + 中文描述）。
