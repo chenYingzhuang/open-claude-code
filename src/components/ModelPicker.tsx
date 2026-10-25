@@ -46,7 +46,7 @@ import {
   modelDisplayString,
   parseUserSpecifiedModel,
 } from '../utils/model/model.js';
-import { getModelOptions } from '../utils/model/modelOptions.js';
+import { getModelOptions, modelOptionIdentity } from '../utils/model/modelOptions.js';
 import { isModelAllowed } from '../utils/model/modelAllowlist.js';
 import { getInitialSettings, getSettingsForSource } from '../utils/settings/settings.js';
 import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
@@ -136,17 +136,19 @@ export function ModelPicker({
   // This handles edge cases where the user's current model (e.g., 'haiku' for 3P users)
   // is not in the base options but should still be selectable and shown as selected
   const optionsWithInitial = useMemo(() => {
-    if (initial !== null && !modelOptions.some(opt => opt.value === initial)) {
-      return [
-        ...modelOptions,
-        {
-          value: initial,
-          label: modelDisplayString(initial),
-          description: 'Current model',
-        },
-      ];
+    if (initial === null) return modelOptions;
+    const identity = modelOptionIdentity(initial);
+    if (modelOptions.some(opt => opt.value !== null && modelOptionIdentity(opt.value) === identity)) {
+      return modelOptions;
     }
-    return modelOptions;
+    return [
+      ...modelOptions,
+      {
+        value: initial,
+        label: modelDisplayString(initial),
+        description: 'Current model',
+      },
+    ];
   }, [modelOptions, initial]);
 
   /**
@@ -197,10 +199,22 @@ export function ModelPicker({
     ],
     [optionsWithInitial, aggregatedOptions],
   );
-  const initialFocusValue = useMemo(
-    () => (selectOptions.some(_ => _.value === initialValue) ? initialValue : (selectOptions[0]?.value ?? undefined)),
-    [selectOptions, initialValue],
-  );
+  const initialFocusValue = useMemo(() => {
+    const exact = selectOptions.find(option => option.value === initialValue);
+    if (exact) return exact.value;
+    if (initial !== null) {
+      const identity = modelOptionIdentity(initial);
+      const sameCheckpoint = selectOptions.find(
+        option =>
+          option.value !== NO_PREFERENCE &&
+          option.value !== '__PROFILE_MODELS_SEPARATOR__' &&
+          !option.value.startsWith('occ-profile://') &&
+          modelOptionIdentity(option.value) === identity,
+      );
+      if (sameCheckpoint) return sameCheckpoint.value;
+    }
+    return selectOptions[0]?.value;
+  }, [selectOptions, initialValue, initial]);
   const visibleCount = Math.min(maxVisible, selectOptions.length);
   const hiddenCount = Math.max(0, selectOptions.length - visibleCount);
 

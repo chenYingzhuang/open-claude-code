@@ -200,7 +200,14 @@ function sameModelId(left: string, right: string): boolean {
 function getEnvSpecifiedModel(): string | undefined {
   const value = process.env.ANTHROPIC_MODEL?.trim()
   if (!value) return undefined
-  return isDeepSeekMirroredModel(value) ? undefined : value
+  if (isDeepSeekMirroredModel(value)) return undefined
+  // Profile activation copies the provider default into settings.env, and
+  // applyConfig then mirrors it onto process.env. That copy is not a
+  // selection: an explicit settings.model must outrank it. A shell export
+  // that settings.env does not carry still wins.
+  const fromProfile = getSettings_DEPRECATED()?.env?.ANTHROPIC_MODEL?.trim()
+  if (fromProfile && fromProfile === value) return undefined
+  return value
 }
 
 /**

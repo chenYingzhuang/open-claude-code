@@ -129,15 +129,34 @@ describe('isThirdPartyModelCatalog', () => {
 })
 
 describe('/model options for a DeepSeek session', () => {
-  test('lists the user’s tier models, not Anthropic’s', () => {
+  test('lists each configured checkpoint once, not once per tier plus the catalog', () => {
     deepseekSession()
     const options = getModelOptions()
-    const byValue = new Map(options.map(o => [o.value, o]))
+    const labels = options.map(option => option.label)
 
-    expect(byValue.get('sonnet')?.label).toBe('deepseek-v4-pro')
-    expect(byValue.get('opus')?.label).toBe('deepseek-v4-pro')
-    expect(byValue.get('fable')?.label).toBe('deepseek-v4-pro')
-    expect(byValue.get('haiku')?.label).toBe('deepseek-v4-flash')
+    // sonnet is the first tier that resolves to pro, haiku to flash. opus,
+    // fable and the preset catalog rows are the same checkpoints and are
+    // dropped so the picker does not grow copies after a few switches.
+    expect(labels.filter(label => label === 'deepseek-v4-pro')).toEqual([
+      'deepseek-v4-pro',
+    ])
+    expect(labels.filter(label => label === 'deepseek-v4-flash')).toEqual([
+      'deepseek-v4-flash',
+    ])
+    expect(options.some(option => option.value === 'sonnet')).toBe(true)
+    expect(options.some(option => option.value === 'haiku')).toBe(true)
+    expect(
+      options.some(
+        option => option.value === 'opus' || option.value === 'fable',
+      ),
+    ).toBe(false)
+    expect(
+      options.some(
+        option =>
+          option.value === 'deepseek-v4-pro' ||
+          option.value === 'deepseek-v4-flash',
+      ),
+    ).toBe(false)
   })
 
   test('offers no Anthropic model and quotes no Anthropic price', () => {
@@ -154,14 +173,6 @@ describe('/model options for a DeepSeek session', () => {
         o => o.description.includes('per Mtok') && o.description.includes('$'),
       ),
     ).toBe(false)
-  })
-
-  test('surfaces the DeepSeek preset catalog so both checkpoints are reachable', () => {
-    deepseekSession()
-    const values = getModelOptions().map(o => o.value)
-
-    expect(values).toContain('deepseek-v4-pro')
-    expect(values).toContain('deepseek-v4-flash')
   })
 
   test('an unconfigured tier is never offered as an Anthropic model id', () => {

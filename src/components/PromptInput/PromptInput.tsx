@@ -81,6 +81,7 @@ import { cacheImagePath, storeImage } from '../../utils/terminal/imageStore.js';
 import { isMacosOptionChar, MACOS_OPTION_SPECIAL_CHARS } from '../../utils/terminal/keyboardShortcuts.js';
 import { logError } from '../../utils/telemetry/log.js';
 import { isOpus1mMergeEnabled, modelDisplayString } from '../../utils/model/model.js';
+import { persistSelectedModel } from '../../utils/model/persistSelectedModel.js';
 import { cyclePermissionMode, getNextPermissionMode } from '../../utils/permissions/getNextPermissionMode.js';
 import { getPlatform } from '../../utils/process/platform.js';
 import type { ProcessUserInputContext } from '../../utils/processUserInput/processUserInput.js';
@@ -2136,6 +2137,7 @@ function PromptInput({
         };
       });
       setShowModelPicker(false);
+      persistSelectedModel(model);
       const effectiveFastMode = (isFastMode ?? false) && !wasFastModeDisabled;
       let message = `Model set to ${modelDisplayString(model)}`;
       if (isBilledAsExtraUsage(model, effectiveFastMode, isOpus1mMergeEnabled())) {

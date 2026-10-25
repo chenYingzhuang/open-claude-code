@@ -30,6 +30,7 @@ import {
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 import { activateProfileForModel } from '../../services/providerProfiles/activate.js';
+import { persistSelectedModel } from '../../utils/model/persistSelectedModel.js';
 
 function ModelPickerWrapper({
   onDone,
@@ -62,6 +63,7 @@ function ModelPickerWrapper({
       mainLoopModel: model,
       mainLoopModelForSession: null,
     }));
+    persistSelectedModel(model);
 
     let message = `Set model to ${chalk.bold(renderModelLabel(model))}`;
     if (effort !== undefined) {
@@ -186,6 +188,7 @@ function SetModelAndClose({
         mainLoopModel: modelValue,
         mainLoopModelForSession: null,
       }));
+      persistSelectedModel(modelValue);
       let message = `Set model to ${chalk.bold(renderModelLabel(modelValue))}`;
 
       let wasFastModeToggledOn;
@@ -291,6 +294,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       ...prev,
       mainLoopModel: activated.model.id,
     }));
+    persistSelectedModel(activated.model.id);
     onDone(`Switched to profile ${chalk.bold(activated.profile.name)} and model ${chalk.bold(activated.model.id)}`, {
       display: 'system',
     });

@@ -23,9 +23,13 @@ test('parseContextWindowTokens: invalid input → undefined', () => {
   expect(parseContextWindowTokens('128000')).toBeUndefined() // plain numbers are not display strings
 })
 
-test('every preset model contextWindow parses (login flow auto-sets the limit from it)', () => {
+test('every text preset model contextWindow parses (login flow auto-sets the limit from it)', () => {
   for (const provider of CHINA_LLM_PROVIDERS) {
     for (const model of provider.models) {
+      if (model.kind && model.kind !== 'text') {
+        expect(getChinaProviderContextWindow(model.id)).toBeUndefined()
+        continue
+      }
       expect(parseContextWindowTokens(model.contextWindow)).toBeGreaterThan(0)
     }
   }
@@ -77,6 +81,12 @@ test('findChinaProviderByBaseURL matches pay-as-you-go and coding-plan endpoints
   expect(findChinaProviderByBaseURL(zhipu?.codingPlan?.baseURL)?.id).toBe(
     'zhipu',
   )
+  const qwen = CHINA_LLM_PROVIDERS.find(p => p.id === 'qwen')
+  expect(findChinaProviderByBaseURL(qwen?.tokenPlan?.baseURL)?.id).toBe('qwen')
+  expect(
+    findChinaProviderByBaseURL(qwen?.tokenPlan?.anthropicBaseURL)?.id,
+  ).toBe('qwen')
+  expect(findChinaProviderByBaseURL(qwen?.codingPlan?.baseURL)?.id).toBe('qwen')
 })
 
 test('findChinaProviderByBaseURL ignores unrelated and empty endpoints', () => {
@@ -93,6 +103,8 @@ test('getChinaProviderContextWindow resolves per model, not per provider', () =>
   expect(getChinaProviderContextWindow('glm-4.7')).toBe(205_000)
   expect(getChinaProviderContextWindow('glm-4.7-flash')).toBe(203_000)
   expect(getChinaProviderContextWindow('deepseek-v4-pro')).toBe(1_000_000)
+  expect(getChinaProviderContextWindow('qwen3.8-max')).toBe(1_000_000)
+  expect(getChinaProviderContextWindow('wan2.7-image')).toBeUndefined()
   expect(getChinaProviderContextWindow('DeepSeek-V4-Flash')).toBe(1_000_000)
   expect(getChinaProviderContextWindow('gpt-5.5')).toBeUndefined()
   expect(getChinaProviderContextWindow('')).toBeUndefined()

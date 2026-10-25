@@ -2,11 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) and other AI coding agents when working with code in this repository.
 
-> **阅读方式（2026-10-18）**  
-> 接活入口与公共必读：[`docs/ai/README.md`](docs/ai/README.md)。  
-> 本文件是**工程细节真源**，按章节按需阅读。无具体任务的「了解项目」不要全文通读本文件。  
-> 工具若自动注入整份本文件：仍以指南入口为准，先建立项目地图，再按触及面深入对应章节。  
-> 旧映射：曾要求「开工前读完整 CLAUDE.md」→ 指南驱动分层阅读；旧 `docs/AI任务指南.md` 已删除，入口仅为 `docs/ai/README.md`。路径隔离、precheck、Bun、测试红线仍然有效。
+@AGENTS.md
+
+> **阅读方式（2026-10-24）**  
+> 统一索引是同目录 [`AGENTS.md`](AGENTS.md)。本文件是**工程细节真源**，按章节按需阅读，不代替索引。无具体任务不要全文通读本文件。  
+> 工具若自动注入整份本文件：仍先按索引进入 [`docs/ai/README.md`](docs/ai/README.md) 的接活入口，再按触及面读对应章节。  
+> 旧映射：曾要求「开工前读完整 CLAUDE.md」。旧 `docs/AI任务指南.md` 已删除。路径隔离、precheck、Bun、测试红线仍然有效。
 
 ## Project Overview
 
@@ -128,6 +129,7 @@ occ 与官方 Claude Code 必须能装在同一台机器上互不干扰。这不
 - **分层模型设置**（2.31.0 起）：`settings.modelSettings.<tier>.{effort,contextTokens}` 按 haiku/sonnet/opus/fable 分别配置，入口是 `/model` 选择器（`←/→` effort、`Space` 循环最大上下文，都作用于高亮行所属档位）和 `/model-settings` 命令。2.35.0 起另有独立的 `modelSettings.default` 槽（provider 默认模型专用，与四档互不污染，即使解析成同一 concrete id）；**槽位判定基于选择来源而不是解析后 id 对比**（默认链 → `default`，字面别名 → 别名槽，显式 id → 反查；恰等于 provider primary 的显式 id 归 `default`），实现禁止调用订阅/auth 链（`getContextWindowForModel` 是热路径且测试/CI 下 auth 会抛）。出厂默认按 provider 家族分（DeepSeek max·1M / GPT 含 o 系 xhigh·272k / Claude opus·fable xhigh·1M / Claude sonnet·haiku xhigh·200k / Gemini·Grok high·200k / 其他 xhigh·200k）。**occ 的五档只有 Anthropic 一家原生认，其余每家都要映射**，表在 `docs/zh/features/model-settings.md` 的「effort 怎么落到各家协议上」：DeepSeek 两条线都折成三档、OpenAI chat 把 xhigh·max 夹到 high、Gemini 缩放 `thinkingBudget`（`high` 是恒等档，所以 Gemini·Grok 的出厂默认才是 `high`）、Grok 折成两档且只对 `grok-3-mini` 系发。`modelSupportsEffort()` 是**显示与发送的同一个判据** —— 分叉过一次（`deepseek-chat` 判为不支持而 chat 线照发 `max`），界面装作没这旋钮、请求却一直被它操纵。**`modelTier.ts` 与 `tierDefaults.ts` 必须保持零依赖** —— 两个热解析器都调它们且都从 `providers.ts` 可达（`getModelTiers` 的档位反查因此只读 `process.env`）。两处易错点：档位以**别名**为键而请求里流的是**解析后的 id**，第三方 id 不含 `opus`/`sonnet` 字样，所以必须靠 `*_DEFAULT_<TIER>_MODEL` 反查（否则所有覆盖静默失效）；`[1m]` 闸门只对 Anthropic 模型成立，`supportsContextWindow()` 不得对第三方 id clamp。真源文档 `docs/zh/features/model-settings.md`。
 - **DeepSeek 调优门控**：`src/utils/model/deepseekTuning.ts` 是全部 DeepSeek 专属行为的**唯一门控**（模型 id 含 `deepseek` **或** baseURL 指向 `api.deepseek.com`）。现有七项：未指定时 temperature 补 `0`（官方参数指南把代码/数学定为 0.0，而 DeepSeek 的隐式默认是 1.0；`DEEPSEEK_TEMPERATURE` 单项退出，thinking 模式下不发）、工具表截断到 128（官方硬上限，超出直接拒收）、thinking 模式下带 `tool_calls` 的 assistant 轮补 `reasoning_content: ''`（缺字段 DeepSeek 回 400；只保留已有 thinking 块不够，compact 改写过的历史会漏）、`thinking` 开关两个方向都显式发（DeepSeek 默认 `enabled`，只发开不发关等于 `OPENAI_ENABLE_THINKING=0` 无效）、`reasoning_effort` 按 low/high/max 三档折叠 occ 的五档且**未设置时默认 `max`**（梯子只有三级，从默认到顶只差一步；`/effort` 与 `CLAUDE_CODE_EFFORT_LEVEL` 仍优先，thinking 关闭时不发）、上下文窗口按 **1M** 算（V4 是 1M 族，200k 兜底会让 auto-compact 早触发 5 倍）。**依赖为零的那半边谓词在 `deepseekFamily.ts`**（`isDeepSeekFamilyModel` / `isDeepSeekBaseURL` / 窗口常量），`deepseekTuning.ts` 再导出 —— `session/context.ts` 直接引 tuning 会闭合一条 runtime 环。窗口那一项**只按模型名判定、不看 baseURL**：`getContextWindowForModel` 对所有 provider 都跑，残留的 `OPENAI_BASE_URL` 不该把 1M 发给 Anthropic 会话。新增 DeepSeek 差异化行为必须挂这个门控；**其他 OpenAI 兼容端点（GLM/Kimi/Qwen/MiMo/本地 vLLM）必须字节级不变**。
 - **首启向导**：`Onboarding.tsx` 步骤为 theme → migrate（`MigrationStep`，检测 `~/.claude` 且未迁移过才出现）→ oauth（`ConsoleOAuthFlow`，登录方式菜单 + OAuth/ChatGPT/Antigravity/china preset 各流程）→ security → terminal-setup。china preset 选定模型会按 `parseContextWindowTokens` 自动写上下文键。
+- **千问三套端点不要混用**（2026-10-24）：按量 `https://dashscope.aliyuncs.com/compatible-mode/v1`，Coding Plan `https://coding.dashscope.aliyuncs.com/v1`，Token Plan OpenAI 兼容 `https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1`、Anthropic 兼容 `https://token-plan.maas.qianwenaiapi.com/apps/anthropic`。预设在 `src/utils/model/chinaLlmProviders.ts`。Token Plan 的编码默认档是千问文本（`qwen3.8-flash` / `qwen3.7-plus` / `qwen3.8-max`）；套餐里的 DeepSeek、智谱、图像、视频、语音模型只登记，不进默认档。图像/视频/语音没有上下文窗口，不能拿去当主循环。密钥只在 `~/.occ/`。
 - **API-key 类 provider 的表单不在 ConsoleOAuthFlow 里**：OpenAI 两条线、Anthropic 兼容、Gemini、Grok 共用 `src/components/providerSetup/` 的两步向导（Step 1 端点 → `GET /models` → Step 2 选模型，拉不到就退回手填）。**各家差异只能加在 `specs.ts` 的表里**（env 键、默认 baseURL、校验、保存副作用、`hasEndpointStep`、`defaultModelField`、`presetModels`），组件里不要写 provider 分支。2.35.0 起 `OPENAI_MODEL` 不再压过档位别名（`resolveOpenAIModel` 把 `OPENAI_DEFAULT_<TIER>_MODEL` 排在它之上，显式 id 原样透传），所以 china preset 改为 `defaultModelField: 'required'` 并写 `OPENAI_MODEL` 作为 default 槽主模型。ChatGPT 订阅 / Antigravity 会话进向导走 `subscriptionAuth` 锁定模式（`credentialEditing: 'locked'`，只编辑模型/档位，凭据与 auth-mode 键一概不写）。`presetModels` 只给 occ 本来就维护表的两家（Anthropic 兼容 = Claude 全系、OpenAI = GPT 列表），且只对官方端点生效（`usesOfficialEndpoint`）；Gemini/Grok 故意留空，别去现编第三方 model id 表。不带参数的 `/model-settings`（`src/commands/model-settings/tierWizard.tsx`；`/models-setting` 是它的别名，两条命令 2.38 合并）从 env 重开模型步骤，判定逻辑在 `providerSetup/fromEnvironment.ts`；**没有可配置 provider 时退回该命令的文字面板**，不要退回「无可配置项」对话框。凭据此时还没落盘，所以探测走 `modelCatalog/fetchExplicit.ts`（读 env 的 `fetch.ts` 在这里用不了）；纯解析函数在 `modelCatalog/parse.ts`，两边共用。Max ctx 字段接受 `128000`/`128k`/`1m`（`providerSetup/maxContext.ts` 的 `parseMaxContextInput`，ConsoleOAuthFlow 仍再导出）。
 
 ## Testing

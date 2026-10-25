@@ -22,6 +22,7 @@ import { getAuthStatus } from './getAuthStatus.js';
 import { WorkspaceKeyInputContainer } from './WorkspaceKeyInput.js';
 import { removeWorkspaceKey } from '../../services/auth/saveWorkspaceKey.js';
 import { getInitialEffortSetting } from '../../utils/model/effort.js';
+import { persistSelectedModel } from '../../utils/model/persistSelectedModel.js';
 import { getInitialSettings } from '../../utils/settings/settings.js';
 
 export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXCommandContext): Promise<React.ReactNode> {
@@ -32,6 +33,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
     <Login
       authStatus={authStatus}
       onProviderChanged={outcome => {
+        if (outcome.providerChanged) persistSelectedModel(null);
         context.setAppState(prev => ({
           ...prev,
           settings: getInitialSettings(),

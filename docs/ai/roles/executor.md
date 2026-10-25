@@ -1,6 +1,6 @@
 # executor（实现）角色手册
 
-> 薄手册；方法论权威见 ai-work `规范/10`。含本仓 CAO `assign occ` / `frontend` worker。
+> 薄手册；方法论权威见 ai-work `规范/10`。
 
 ## 职责
 
@@ -28,7 +28,7 @@
 
 - 不自行宣布「已审核通过」；不派出其他 AI（`AI_ROLE=worker`）。
 - 不把密钥写入仓库；不硬编码 `~/.claude` / `~/.occ` 路径字面量。
-- CAO worker **勿用** `occ-agent --activate` 切模型（会写全局 settings）。
+- **勿用** `occ-agent --activate` 做临时切模型（会写全局 settings）。
 
 ## 本项目验收
 
@@ -38,6 +38,6 @@
 
 ## 阅读
 
-公共必读：[`../README.md`](../README.md) §接活 + §1–§5。  
+公共必读：[`../README.md`](../README.md) 接活入口 + §1、§2、§3、§5、§10。
 角色必读：本册。  
-条件：构建/Provider/RC/CAO 等见指南接活表。
+条件：构建/Provider/Remote Control 等见指南接活表。

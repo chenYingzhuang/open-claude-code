@@ -114,9 +114,16 @@ export function sessionOwnedProfiles(
     const managedKeys = PROFILE_ENV_KEYS[profile.modelType]
     if (!managedKeys) continue
     const profileEnv = profile.env ?? {}
-    const sameConfiguration = managedKeys.every(
-      key => (profileEnv[key] ?? '') === (session.env[key] ?? ''),
-    )
+    // A key the profile never saved is not part of its identity. The live
+    // session accumulates tier defaults, context tokens and wire mirrors, and
+    // treating those as a mismatch made the current profile look foreign —
+    // its catalog was then appended under the models already on screen.
+    const sameConfiguration = managedKeys.every(key => {
+      const profileValue = profileEnv[key] ?? ''
+      const sessionValue = session.env[key] ?? ''
+      if (profileValue === '' && sessionValue !== '') return true
+      return profileValue === sessionValue
+    })
     if (sameConfiguration) owned.add(name)
   }
   return owned

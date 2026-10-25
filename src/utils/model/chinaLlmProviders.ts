@@ -6,15 +6,33 @@
 import { normalizeProviderBaseURL } from '../network/providerUrl.js'
 import { isDeepSeekBaseURL } from './deepseekHost.js'
 
+export type ProviderModelKind =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'realtime'
+
 export type ProviderModel = {
   id: string
   label: string
   inputPricePerMTok: number
   outputPricePerMTok: number
+  /**
+   * Display window ('1M', '262K'). Empty for non-text models: they are not
+   * main-loop checkpoints, and a made-up window would steer auto-compact.
+   */
   contextWindow: string
   free?: boolean
   tags?: string[]
   deprecated?: string
+  /**
+   * Picker price line, when the ¥/Mtok pair is not what should be shown
+   * (a night discount, a router, or a non-text model).
+   */
+  priceLabel?: string
+  /** Defaults to text. Non-text models are listed but have no context window. */
+  kind?: ProviderModelKind
 }
 
 export type CodingPlanTier = {
@@ -45,6 +63,17 @@ export type ProviderTierModels = {
   fable: string
 }
 
+export type ProviderSubscription = {
+  baseURL: string
+  keyFormat: string
+  purchasePage: string
+  tiers: CodingPlanTier[]
+  /** Anthropic-compatible base, when this subscription publishes one. */
+  anthropicBaseURL?: string
+}
+
+export type ChinaAccessMode = 'api' | 'coding-plan' | 'token-plan'
+
 export type ProviderPreset = {
   id: string
   label: string
@@ -57,12 +86,9 @@ export type ProviderPreset = {
   keyFormat: string
   defaultModel: string
   tiers: ProviderTierModels
-  codingPlan?: {
-    baseURL: string
-    keyFormat: string
-    purchasePage: string
-    tiers: CodingPlanTier[]
-  }
+  codingPlan?: ProviderSubscription
+  /** Subscription credits. Distinct host and key from Coding Plan. */
+  tokenPlan?: ProviderSubscription
   models: ProviderModel[]
 }
 
@@ -179,19 +205,21 @@ export const CHINA_LLM_PROVIDERS: ProviderPreset[] = [
   {
     id: 'qwen',
     label: 'Tongyi Qianwen',
-    description: 'Alibaba Cloud, Coding Plan, 90-day free tier',
+    description: 'Alibaba Cloud, Token Plan, Coding Plan',
     icon: '☁️',
     baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKeyPage: 'https://bailian.console.aliyun.com',
     modelsPage:
       'https://help.aliyun.com/zh/model-studio/getting-started/models',
     freeTier: '90-day free tier for all models after activation',
-    defaultModel: 'qwen3.5-plus',
+    // Coding default stays on Qwen text. The Token Plan also serves
+    // DeepSeek, GLM, and media models; those are listed, not the tiers.
+    defaultModel: 'qwen3.8-max',
     tiers: {
-      haiku: 'qwen3.5-flash',
-      sonnet: 'qwen3.5-plus',
-      opus: 'qwen3-max',
-      fable: 'qwen3-max',
+      haiku: 'qwen3.8-flash',
+      sonnet: 'qwen3.7-plus',
+      opus: 'qwen3.8-max',
+      fable: 'qwen3.8-max',
     },
     keyFormat: 'sk-...',
     codingPlan: {
@@ -208,14 +236,85 @@ export const CHINA_LLM_PROVIDERS: ProviderPreset[] = [
         },
       ],
     },
+    tokenPlan: {
+      baseURL: 'https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1',
+      anthropicBaseURL:
+        'https://token-plan.maas.qianwenaiapi.com/apps/anthropic',
+      keyFormat: 'sk-sp-...',
+      purchasePage: 'https://bailian.console.aliyun.com',
+      tiers: [
+        {
+          id: 'token-plan',
+          label: 'Token Plan',
+          price: 'Subscription credits',
+          credits: 'Qwen night 40% of list; DeepSeek night 50%',
+          description:
+            'Qwen text is the coding default. decision-model-preview is free for a limited time.',
+        },
+      ],
+    },
     models: [
+      {
+        id: 'qwen3.8-max',
+        label: 'Qwen3.8 Max',
+        inputPricePerMTok: 12,
+        outputPricePerMTok: 36,
+        contextWindow: '1M',
+        tags: ['Flagship', 'Vision', 'Night 40%'],
+        priceLabel: '¥12/¥36 · night 40% of list',
+      },
+      {
+        id: 'qwen3.8-flash',
+        label: 'Qwen3.8 Flash',
+        inputPricePerMTok: 0.8,
+        outputPricePerMTok: 2.7,
+        contextWindow: '1M',
+        tags: ['Fast', 'Vision', 'Night 40%'],
+        priceLabel: '¥0.8/¥2.7 · night 40% of list',
+      },
+      {
+        id: 'qwen3.7-plus',
+        label: 'Qwen3.7 Plus',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '1M',
+        tags: ['Vision'],
+        priceLabel: 'Text, vision',
+      },
+      {
+        id: 'qwen3.7-max',
+        label: 'Qwen3.7 Max',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '1M',
+        tags: ['Reasoning'],
+        priceLabel: 'Text, reasoning',
+      },
+      {
+        id: 'qwen3.6-flash',
+        label: 'Qwen3.6 Flash',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '1M',
+        tags: ['Fast', 'Vision'],
+        priceLabel: 'Text, vision',
+      },
+      {
+        id: 'auto',
+        label: 'Qwen Auto',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '1M',
+        tags: ['Router'],
+        priceLabel: 'Router',
+      },
       {
         id: 'qwen3-max',
         label: 'Qwen3 Max',
         inputPricePerMTok: 2.5,
         outputPricePerMTok: 10,
         contextWindow: '262K',
-        tags: ['Flagship'],
+        tags: ['Pay as you go'],
       },
       {
         id: 'qwen3.5-plus',
@@ -223,7 +322,7 @@ export const CHINA_LLM_PROVIDERS: ProviderPreset[] = [
         inputPricePerMTok: 0.8,
         outputPricePerMTok: 4.8,
         contextWindow: '1M',
-        tags: ['Recommended', 'Value'],
+        tags: ['Pay as you go'],
       },
       {
         id: 'qwen3.5-flash',
@@ -231,7 +330,170 @@ export const CHINA_LLM_PROVIDERS: ProviderPreset[] = [
         inputPricePerMTok: 0.2,
         outputPricePerMTok: 2,
         contextWindow: '1M',
-        tags: ['Fast'],
+        tags: ['Pay as you go', 'Fast'],
+      },
+      {
+        id: 'decision-model-preview',
+        label: 'Decision Model Preview',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '128K',
+        free: true,
+        tags: ['Limited-time free'],
+        priceLabel: 'Limited-time free',
+      },
+      {
+        id: 'deepseek-v4.1-flash-1017',
+        label: 'DeepSeek V4.1 Flash 1017',
+        inputPricePerMTok: 1,
+        outputPricePerMTok: 2,
+        contextWindow: '1M',
+        tags: ['Night 50%', 'Vision'],
+        priceLabel: '¥1/¥2 · night 50% of list',
+      },
+      {
+        id: 'deepseek-v4.1-flash',
+        label: 'DeepSeek V4.1 Flash',
+        inputPricePerMTok: 1,
+        outputPricePerMTok: 2,
+        contextWindow: '1M',
+        tags: ['Night 50%', 'Vision'],
+        priceLabel: '¥1/¥2 · night 50% of list',
+      },
+      {
+        id: 'deepseek-v4-pro-0813',
+        label: 'DeepSeek V4 Pro 0813',
+        inputPricePerMTok: 3,
+        outputPricePerMTok: 6,
+        contextWindow: '1M',
+        tags: ['Night 50%'],
+        priceLabel: '¥3/¥6 · night 50% of list',
+      },
+      {
+        id: 'deepseek-v4-pro',
+        label: 'DeepSeek V4 Pro',
+        inputPricePerMTok: 3,
+        outputPricePerMTok: 6,
+        contextWindow: '1M',
+        tags: ['Token Plan'],
+        priceLabel: '¥3/¥6 · Token Plan',
+      },
+      {
+        id: 'deepseek-v4-flash-0731',
+        label: 'DeepSeek V4 Flash 0731',
+        inputPricePerMTok: 1,
+        outputPricePerMTok: 2,
+        contextWindow: '1M',
+        tags: ['Night 50%'],
+        priceLabel: '¥1/¥2 · night 50% of list',
+      },
+      {
+        id: 'glm-5.3',
+        label: 'GLM-5.3',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '203K',
+        tags: ['Token Plan'],
+        priceLabel: 'Text, reasoning',
+      },
+      {
+        id: 'glm-5.2',
+        label: 'GLM-5.2',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '203K',
+        tags: ['Token Plan'],
+        priceLabel: 'Text, reasoning',
+      },
+      {
+        id: 'qwen-audio-3.0-asr-flash',
+        label: 'Qwen Audio ASR Flash',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'audio',
+        priceLabel: 'Speech recognition',
+      },
+      {
+        id: 'qwen-audio-3.0-realtime-plus',
+        label: 'Qwen Audio Realtime Plus',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'realtime',
+        priceLabel: 'Realtime speech',
+      },
+      {
+        id: 'qwen-audio-3.0-tts-plus',
+        label: 'Qwen Audio TTS Plus',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'audio',
+        priceLabel: 'Speech synthesis',
+      },
+      {
+        id: 'qwen-image-3.0-pro',
+        label: 'Qwen Image 3.0 Pro',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'image',
+        priceLabel: 'Image generation',
+      },
+      {
+        id: 'wan2.7-image',
+        label: 'Wan 2.7 Image',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'image',
+        priceLabel: 'Image generation',
+      },
+      {
+        id: 'wan2.7-image-pro',
+        label: 'Wan 2.7 Image Pro',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'image',
+        priceLabel: 'Image generation',
+      },
+      {
+        id: 'wan3.0-video',
+        label: 'Wan 3.0 Video',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'video',
+        priceLabel: 'Video generation',
+      },
+      {
+        id: 'happyhorse-1.1-r2v',
+        label: 'HappyHorse 1.1 R2V',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'video',
+        priceLabel: 'Video, reference to video',
+      },
+      {
+        id: 'happyhorse-1.1-t2v',
+        label: 'HappyHorse 1.1 T2V',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'video',
+        priceLabel: 'Video, text to video',
+      },
+      {
+        id: 'happyhorse-1.1-i2v',
+        label: 'HappyHorse 1.1 I2V',
+        inputPricePerMTok: 0,
+        outputPricePerMTok: 0,
+        contextWindow: '',
+        kind: 'video',
+        priceLabel: 'Video, image to video',
       },
     ],
   },
@@ -322,10 +584,13 @@ export function findChinaProviderById(id: string): ProviderPreset | undefined {
 
 export function resolveChinaProviderBaseURL(
   providerId: string,
-  mode: 'api' | 'coding-plan',
+  mode: ChinaAccessMode,
 ): string {
   const provider = findChinaProviderById(providerId)
   if (!provider) return ''
+  if (mode === 'token-plan' && provider.tokenPlan) {
+    return provider.tokenPlan.baseURL
+  }
   if (mode === 'coding-plan' && provider.codingPlan) {
     return provider.codingPlan.baseURL
   }
@@ -375,12 +640,17 @@ export function findChinaProviderByBaseURL(
 ): ProviderPreset | undefined {
   if (!baseURL?.trim()) return undefined
   const target = normalizeBaseURL(baseURL)
-  return CHINA_LLM_PROVIDERS.find(
-    provider =>
-      normalizeBaseURL(provider.baseURL) === target ||
-      (provider.codingPlan !== undefined &&
-        normalizeBaseURL(provider.codingPlan.baseURL) === target),
-  )
+  return CHINA_LLM_PROVIDERS.find(provider => {
+    const urls = [
+      provider.baseURL,
+      provider.codingPlan?.baseURL,
+      provider.tokenPlan?.baseURL,
+      provider.tokenPlan?.anthropicBaseURL,
+    ]
+    return urls.some(
+      url => url !== undefined && normalizeBaseURL(url) === target,
+    )
+  })
 }
 
 /**
@@ -420,9 +690,10 @@ export function getChinaProviderContextWindow(
   if (!target) return undefined
   for (const provider of CHINA_LLM_PROVIDERS) {
     for (const model of provider.models) {
-      if (checkpointId(model.id) === target) {
-        return parseContextWindowTokens(model.contextWindow)
-      }
+      if (checkpointId(model.id) !== target) continue
+      // Image, video, and speech models are not main-loop checkpoints.
+      if (model.kind && model.kind !== 'text') return undefined
+      return parseContextWindowTokens(model.contextWindow)
     }
   }
   return undefined

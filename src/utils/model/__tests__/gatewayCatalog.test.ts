@@ -281,6 +281,24 @@ describe('getMainLoopModelSettingsSlot follows the selection source', () => {
     expect(getMainLoopModelSettingsSlot('glm-4.6-air')).toBe('sonnet')
   })
 
+  test('a profile-owned ANTHROPIC_MODEL does not outrank settings.model', () => {
+    settings = {
+      model: 'deepseek-v4-flash',
+      env: { ANTHROPIC_MODEL: 'deepseek-v4-pro' },
+    } as SettingsJson
+    process.env.ANTHROPIC_MODEL = 'deepseek-v4-pro'
+
+    expect(getUserSpecifiedModelSetting()).toBe('deepseek-v4-flash')
+    expect(getMainLoopModel()).toBe('deepseek-v4-flash')
+  })
+
+  test('a shell ANTHROPIC_MODEL still outranks settings.model', () => {
+    settings = { model: 'deepseek-v4-flash' } as SettingsJson
+    process.env.ANTHROPIC_MODEL = 'deepseek-v4-pro'
+
+    expect(getUserSpecifiedModelSetting()).toBe('deepseek-v4-pro')
+  })
+
   test('a mirrored ANTHROPIC_MODEL does not outrank settings.model', () => {
     // applyDeepSeekAnthropicWire copies OPENAI_MODEL into ANTHROPIC_MODEL, and
     // getUserSpecifiedModelSetting ranks that key above settings.model. Without

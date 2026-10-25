@@ -5,6 +5,7 @@ import { ProviderSetupWizard } from '../../components/providerSetup/ProviderSetu
 import type { ProviderSetupStatus } from '../../components/providerSetup/state.js';
 import type { LocalJSXCommandContext, LocalJSXCommandOnDone } from '../../types/command.js';
 import { getInitialEffortSetting } from '../../utils/model/effort.js';
+import { persistSelectedModel } from '../../utils/model/persistSelectedModel.js';
 import { getInitialSettings } from '../../utils/settings/settings.js';
 
 /**
@@ -52,6 +53,7 @@ export function ModelTierSetup({
           }}
           onCancel={() => onDone('Model settings unchanged.')}
           onSaved={outcome => {
+            if (outcome.providerChanged) persistSelectedModel(null);
             context.setAppState(prev => ({
               ...prev,
               settings: getInitialSettings(),

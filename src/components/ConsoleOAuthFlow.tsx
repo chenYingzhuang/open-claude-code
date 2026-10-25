@@ -48,6 +48,7 @@ import { logError } from '../utils/telemetry/log.js';
 import { getSettings_DEPRECATED, updateSettingsForSource } from '../utils/settings/settings.js';
 import {
   CHINA_LLM_PROVIDERS,
+  type ChinaAccessMode,
   findChinaProviderByBaseURL,
   type ProviderPreset,
   resolveChinaProviderBaseURL,
@@ -130,7 +131,7 @@ type OAuthStatus =
   | { state: 'china_mode_select'; provider: ProviderPreset; activeIndex: number } // China LLM: pick access mode
   // No model step: one API key configures the provider as a whole, and every
   // model it ships is then reachable from /model.
-  | { state: 'china_apikey'; provider: ProviderPreset; mode: 'api' | 'coding-plan'; apiKey: string }
+  | { state: 'china_apikey'; provider: ProviderPreset; mode: ChinaAccessMode; apiKey: string }
   | { state: 'ready_to_start' } // Flow started, waiting for browser to open
   | { state: 'waiting_for_login'; url: string } // Browser opened, waiting for user to login
   | { state: 'creating_api_key' } // Got access token, creating API key
@@ -153,9 +154,13 @@ function chinaPresetForStatus(status: { baseUrl: string }): ProviderPreset | und
   return findChinaProviderByBaseURL(status.baseUrl);
 }
 
-function chinaModeForStatus(status: { baseUrl: string }): 'api' | 'coding-plan' {
+function chinaModeForStatus(status: { baseUrl: string }): ChinaAccessMode {
   const preset = chinaPresetForStatus(status);
-  return preset?.codingPlan?.baseURL === status.baseUrl ? 'coding-plan' : 'api';
+  if (!preset) return 'api';
+  if (preset.tokenPlan?.baseURL === status.baseUrl || preset.tokenPlan?.anthropicBaseURL === status.baseUrl) {
+    return 'token-plan';
+  }
+  return preset.codingPlan?.baseURL === status.baseUrl ? 'coding-plan' : 'api';
 }
 
 export function ConsoleOAuthFlow({
@@ -1209,7 +1214,7 @@ function OAuthStatusMessage({
                 const provider = CHINA_LLM_PROVIDERS.find(p => p.id === value);
                 if (!provider) return;
                 logEvent('tengu_china_provider_selected', {});
-                if (provider.codingPlan) {
+                if (provider.codingPlan || provider.tokenPlan) {
                   setOAuthStatus({ state: 'china_mode_select', provider, activeIndex: 0 });
                 } else {
                   setOAuthStatus({ state: 'china_apikey', provider, mode: 'api', apiKey: '' });
@@ -1223,10 +1228,23 @@ function OAuthStatusMessage({
 
     case 'china_mode_select': {
       const { provider } = oauthStatus;
-      const modeOptions = [
-        { id: 'api' as const, label: 'Pay-as-you-go (API)', desc: 'Top up freely, pay per use' },
-        { id: 'coding-plan' as const, label: 'Coding Plan', desc: 'Fixed monthly fee, high usage' },
+      const modeOptions: { id: ChinaAccessMode; label: string; desc: string }[] = [
+        { id: 'api', label: 'Pay-as-you-go (API)', desc: 'Top up freely, pay per use' },
       ];
+      if (provider.codingPlan) {
+        modeOptions.push({
+          id: 'coding-plan',
+          label: 'Coding Plan',
+          desc: 'Fixed monthly fee, high usage',
+        });
+      }
+      if (provider.tokenPlan) {
+        modeOptions.push({
+          id: 'token-plan',
+          label: 'Token Plan',
+          desc: 'Subscription credits. Qwen text is the coding default',
+        });
+      }
       return (
         <Box flexDirection="column" gap={1} marginTop={1}>
           <Text bold>
@@ -1248,7 +1266,7 @@ function OAuthStatusMessage({
                 setOAuthStatus({
                   state: 'china_apikey',
                   provider,
-                  mode: value as 'api' | 'coding-plan',
+                  mode: value as ChinaAccessMode,
                   apiKey: '',
                 });
               }}
@@ -1311,7 +1329,7 @@ function OAuthStatusMessage({
             statusRef,
             setOAuthStatus,
             'china_apikey',
-            provider.codingPlan
+            provider.codingPlan || provider.tokenPlan
               ? { state: 'china_mode_select', provider, activeIndex: 0 }
               : { state: 'china_provider_select', activeIndex: 0 },
           );
@@ -1319,9 +1337,20 @@ function OAuthStatusMessage({
         { context: 'Confirmation' },
       );
 
-      const isCodingPlan = accessMode === 'coding-plan' && provider.codingPlan !== undefined;
-      const keyPage = isCodingPlan && provider.codingPlan ? provider.codingPlan.purchasePage : provider.apiKeyPage;
-      const keyFormat = isCodingPlan && provider.codingPlan ? provider.codingPlan.keyFormat : provider.keyFormat;
+      const subscription =
+        accessMode === 'token-plan'
+          ? provider.tokenPlan
+          : accessMode === 'coding-plan'
+            ? provider.codingPlan
+            : undefined;
+      const keyPage = subscription ? subscription.purchasePage : provider.apiKeyPage;
+      const keyFormat = subscription ? subscription.keyFormat : provider.keyFormat;
+      const credentialHint =
+        accessMode === 'token-plan'
+          ? 'Use your Token Plan credential here'
+          : accessMode === 'coding-plan'
+            ? 'Use your Coding Plan credential here'
+            : provider.freeTier;
 
       return (
         <Box flexDirection="column" gap={1} marginTop={1}>
@@ -1330,7 +1359,7 @@ function OAuthStatusMessage({
           </Text>
           <Box flexDirection="column" gap={0}>
             <Text dimColor> Get your key: {keyPage}</Text>
-            <Text dimColor> {isCodingPlan ? 'Use your Coding Plan credential here' : provider.freeTier}</Text>
+            <Text dimColor> {credentialHint}</Text>
             <Text dimColor> Key format: {keyFormat}</Text>
           </Box>
           <Box>

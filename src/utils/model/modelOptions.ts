@@ -663,7 +663,75 @@ function getKnownModelOption(model: string): ModelOption | null {
   }
 }
 
+const TIER_OF_ALIAS = {
+  haiku: 'HAIKU',
+  sonnet: 'SONNET',
+  opus: 'OPUS',
+  fable: 'FABLE',
+} as const
+
+function optionDedupKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\[1m\]$/i, '')
+}
+
+/**
+ * Identity of a picker row for de-duplication.
+ *
+ * A tier alias (`sonnet`) and the catalog id it resolves to are the same
+ * checkpoint. An alias with nothing configured keeps its own identity, so the
+ * "no model configured" rows are not collapsed into whatever the default
+ * chain would invent.
+ */
+export function modelOptionIdentity(value: string): string {
+  const trimmed = value.trim()
+  const hasWindow = /\[1m\]$/i.test(trimmed)
+  const withoutWindow = trimmed.replace(/\[1m\]$/i, '')
+  const tier =
+    TIER_OF_ALIAS[withoutWindow.toLowerCase() as keyof typeof TIER_OF_ALIAS]
+  // Keep the window suffix on aliases. `opus` and `opus[1m]` are different
+  // choices; stripping it here would drop the 1M row. Concrete ids still
+  // collapse `model` with `model[1m]`, which is how the provider catalog
+  // reports the same checkpoint the built-in row already shows.
+  const windowSuffix = hasWindow ? '[1m]' : ''
+  if (tier) {
+    const configured = tierEnv(tier, '')?.replace(/\[1m\]$/i, '')
+    if (configured) return optionDedupKey(configured) + windowSuffix
+    return withoutWindow.toLowerCase() + windowSuffix
+  }
+  return optionDedupKey(trimmed)
+}
+
+/**
+ * One row per checkpoint. Tier aliases are listed before the provider catalog,
+ * so the alias row wins and the later catalog copy of the same id is dropped.
+ * Rows are otherwise kept in their existing order.
+ */
+export function dedupeModelOptions<T extends { value: string | null }>(
+  options: readonly T[],
+): T[] {
+  const seen = new Set<string>()
+  const result: T[] = []
+  for (const option of options) {
+    if (option.value === null) {
+      result.push(option)
+      continue
+    }
+    const key = modelOptionIdentity(option.value)
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(option)
+  }
+  return result
+}
+
 export function getModelOptions(fastMode = false): ModelOption[] {
+  return dedupeModelOptions(assembleModelOptions(fastMode))
+}
+
+function assembleModelOptions(fastMode = false): ModelOption[] {
   let options = getModelOptionsBase(fastMode)
 
   // Add the custom model from the ANTHROPIC_CUSTOM_MODEL_OPTION env var
@@ -722,14 +790,19 @@ export function getModelOptions(fastMode = false): ModelOption[] {
   ) {
     for (const model of chinaPreset.models) {
       if (options.some(existing => existing.value === model.id)) continue
-      const price =
-        model.inputPricePerMTok === 0 && model.outputPricePerMTok === 0
+      const price = model.priceLabel
+        ? model.priceLabel
+        : model.inputPricePerMTok === 0 && model.outputPricePerMTok === 0
           ? 'Free'
           : `¥${model.inputPricePerMTok}/¥${model.outputPricePerMTok} per Mtok`
+      const detail =
+        !model.kind || model.kind === 'text'
+          ? `${model.contextWindow} context`
+          : model.kind
       options.push({
         value: model.id,
         label: model.label,
-        description: `${price} · ${model.contextWindow} context`,
+        description: `${price} · ${detail}`,
       })
     }
   }

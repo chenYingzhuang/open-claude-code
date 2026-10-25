@@ -40,6 +40,17 @@ OpenAI（两条线）、Anthropic 兼容端点、Gemini、Grok 走的是**同一
 
 国产模型（DeepSeek / 智谱 GLM / 千问 / MiMo）走 OpenAI 兼容矩阵；`/login → China LLM Providers` 有内置 preset（baseURL、模型表、Coding Plan 专用端点）。
 
+千问的登记名是 `qwen`（中文：通义千问）。按量、Coding Plan、Token Plan 是三套计费，不是三个供应商。Token Plan 只是内部套餐名，和按量、Coding Plan 不是同一个主机：
+
+| 计费 | Base URL | Key |
+| --- | --- | --- |
+| 按量 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `sk-...` |
+| Coding Plan | `https://coding.dashscope.aliyuncs.com/v1` | `sk-sp-...` |
+| Token Plan（OpenAI 兼容） | `https://token-plan.maas.qianwenaiapi.com/compatible-mode/v1` | `sk-sp-...` |
+| Token Plan（Anthropic 兼容） | `https://token-plan.maas.qianwenaiapi.com/apps/anthropic` | 同一把 Token Plan 密钥 |
+
+登录向导里千问会多出 Token Plan 这一项。编码默认档是千问文本（`haiku` → `qwen3.8-flash`，`sonnet` → `qwen3.7-plus`，`opus` / `fable` / 默认模型 → `qwen3.8-max`）。套餐里的 DeepSeek、智谱、万相、HappyHorse、语音和图像模型会列出来，但不是默认档。`qwen3.8-max` / `qwen3.8-flash` 限时夜间 4 折，套餐内 DeepSeek 限时夜间 5 折，`decision-model-preview` 限时免费。密钥只放在 `~/.occ/`，不进仓库。
+
 > **Breaking change：Antigravity 的端点覆盖已从 `GEMINI_BASE_URL` 迁到独立的 `ANTIGRAVITY_BASE_URL`。** 两条线的路径形状根本不同（Antigravity 走 `/v1internal:streamGenerateContent`，Gemini 走 `/v1beta/models/...`），共用一个键意味着任何一方的代理设置都会打歪另一方。以前用 `GEMINI_BASE_URL` 给 Antigravity 配代理的，需要把值改到 `ANTIGRAVITY_BASE_URL`；两个键都不设时各走各的官方默认。
 
 **一个 key 配的是整个供应商，不是一个模型。** 流程是「选供应商 →（有 Coding Plan 的再选计费方式）→ 填 API Key → 选各档位模型」：填完 key 之后该供应商的**所有**模型都能用，`/model` 里直接列出来（带官方标签、价格、上下文窗口），随时切换。

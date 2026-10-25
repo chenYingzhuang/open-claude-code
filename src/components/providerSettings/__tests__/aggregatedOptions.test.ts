@@ -297,6 +297,21 @@ describe('sessionOwnedProfiles', () => {
     ).toEqual(new Set())
   })
 
+  test('extra live tier keys still match the profile that saved the account', () => {
+    expect(
+      sessionOwnedProfiles(registry(relay), {
+        modelType: 'openai',
+        env: {
+          OPENAI_BASE_URL: 'https://relay.example/v1',
+          OPENAI_API_KEY: 'sk-saved',
+          OPENAI_MODEL: 'gpt-5.4',
+          OPENAI_DEFAULT_SONNET_MODEL: 'gpt-5.4',
+          CLAUDE_CODE_MAX_CONTEXT_TOKENS: '1000000',
+        },
+      }),
+    ).toEqual(new Set(['gpt']))
+  })
+
   test('unrelated provider env does not hide the current profile match', () => {
     expect(
       sessionOwnedProfiles(registry(relay), {

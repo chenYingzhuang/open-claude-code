@@ -43,6 +43,7 @@ import { ThemePicker } from '../ThemePicker.js';
 import { useAppState, useSetAppState, useAppStateStore } from '../../state/AppState.js';
 import { ModelPicker } from '../ModelPicker.js';
 import { modelDisplayString, isOpus1mMergeEnabled } from '../../utils/model/model.js';
+import { persistSelectedModel } from '../../utils/model/persistSelectedModel.js';
 import { isBilledAsExtraUsage } from '../../utils/telemetry/extraUsage.js';
 import { ClaudeMdExternalIncludesDialog } from '../ClaudeMdExternalIncludesDialog.js';
 import { ChannelDowngradeDialog, type ChannelDowngradeChoice } from '../ChannelDowngradeDialog.js';
@@ -290,6 +291,7 @@ export function Config({
       mainLoopModel: value,
       mainLoopModelForSession: null,
     }));
+    persistSelectedModel(value);
     setChanges(prev => {
       const valStr =
         modelDisplayString(value) +

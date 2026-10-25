@@ -1,10 +1,11 @@
 # occ / open-claude-code — 项目 AI 协作指南
 
 > 本文件是本项目 AI 协同的**单一真相源（SSOT）**。  
-> 工程细节以仓库根（本文件所在仓为 `src/`）的 `CLAUDE.md` 各章节为准；CAO 编排以 `~/work/projects/tools/cao/docs/` 为准。  
-> 档位：**L2 轻量**（多 CLI / CAO；启用薄角色册，无完整 L3 任务文体系）。
+> 档位：**L2**。项目档位不是每条任务的固定流程；具体任务按 §4 / §11 选直达、常规、加强或严格。  
+> 工程细节以 Git 根 `CLAUDE.md` 的对应章节为准。
+> 无完整 L3 任务文体系。任务依据是派单、issue 或 PR。
 
-工作区根（`tools/occ/`）通过 `docs/ai` → `src/docs/ai` 访问本指南；在 Git 根 `src/` 内路径为 `docs/ai/README.md`。
+工作区根 `/Users/chenyingzhuang/work/assets/occ` 通过 `docs/ai` → `src/docs/ai` 访问本指南（同一份正文）。在 Git 根 `src/` 内路径为 `docs/ai/README.md`。
 
 ---
 
@@ -12,25 +13,32 @@
 
 ### 公共必读（无具体任务的「了解项目」到此为止）
 
-1. 本段「接活阅读入口」
-2. **§1–§5**（定位、双根、红线、环境、验收）
-3. 材料索引位置：`CLAUDE.md`（工程）、工作区 `docs/*.md`（分析）、`cao/docs/`（编排）、本目录 `roles/` / `rules/`
+1. 本段
+2. **§1** 项目定位
+3. **§2** 目录结构（双根，避免改错树）
+4. **§3** 文档职责
+5. **§5** 固定约定（授权、红线、环境、档案摘要）
+6. **§10** 验收入口
 
-**不要**为了解项目而：全文通读 `CLAUDE.md`、分析长文、`logs/`、任务历史或全部档案细则。
+材料索引：`CLAUDE.md`（工程）、工作区 `docs/*.md`（分析，其中的编排描述是历史笔记）、本目录 `roles/`。
+
+**不要**为了解项目而全文通读 `CLAUDE.md`、分析长文、`logs/`、任务历史或全部档案细则。同会话已读且未变化的内容不重复加载。恢复或压缩后先补任务状态、开放项和本阶段约束。
 
 ### 有具体任务时
 
 | 条件 | 再读 |
 |---|---|
-| 已确定任务 | 任务说明 / 开放项 / 本阶段验收；直接依赖的代码或文档章节 |
-| 主控 / 实现 / 评审 | 对应 [`roles/pm.md`](roles/pm.md) / [`roles/executor.md`](roles/executor.md) / [`roles/reviewer.md`](roles/reviewer.md) |
+| 已确定任务 | 任务说明 / 开放项 / 本阶段验收；直接依赖的代码或文档章节；§4 |
+| 主控 / 实现 / 评审 | [`roles/pm.md`](roles/pm.md) / [`roles/executor.md`](roles/executor.md) / [`roles/reviewer.md`](roles/reviewer.md)；派工前再读 §9、§11 |
 | 改路径、配置目录、隔离 | `CLAUDE.md` →「路径与隔离不变式」 |
 | 构建 / Bun / 发布 | `CLAUDE.md` → Commands、发布；`CONTRIBUTING.md` |
-| Provider / 模型 / 代理 | `CLAUDE.md` → Multi-API；§6；`cao/docs/providers-and-models.md` |
+| Provider / 模型 / 代理 | `CLAUDE.md` → Multi-API；§5 档案摘要；Git 根 `docs/zh/features/providers.md` |
 | Remote Control / RCS | `CLAUDE.md` → 子系统边界·Remote Control；工作区 `docs/claude-official-2.1.296-analysis.md` §10.11（按需） |
 | 测试 / mock | `CLAUDE.md` → Testing；`dev-standards` skill（改 prompt/工具时） |
-| 与 CAO 联调 / 改档案或启动器 | [`rules/cao-sync.md`](rules/cao-sync.md)；`cao/docs/occ-for-cao.md`、`runtime.md` |
+| 改本指南或角色册 | §12 |
 | 临时角色 | 派单写明职责/禁区/交付/中断；不继承其他角色整册 |
+
+主控收到新实质任务或风险变化时，按全局主控路由判断直接执行、脚本、工人或对端，不把该技能全文嵌进本指南。
 
 阅读清单是起始指引，**不是**白名单：可自行查证清单外文件；**无阅读审批或拦截**。读到≠获准修改。
 
@@ -38,109 +46,368 @@
 
 ## §1 项目定位
 
-**open-claude-code（CLI：`occ`）**：Anthropic Claude Code 的开源/还原实现，支持多模型 provider、与官方 Claude Code 用户态隔离。本工作区含本机 runtime 替换，并可与 **CAO**（多终端编排）联用。
+**open-claude-code（CLI：`occ`）**：Anthropic Claude Code 的开源/还原实现，支持多模型 provider，并与官方 Claude Code 用户态隔离。本工作区含本机 runtime 替换。
 
 一句话：改的是「多模型编码 CLI + 本机运行时」，不是 ai-work 规范中心，也不是业务产品仓。
 
+主要使用者：本机开发。核心目标：在隔离配置下提供可替换的多模型编码 CLI。
+
 ---
 
-## §2 双根目录
+## §2 目录结构
 
 | 路径 | 角色 |
 |---|---|
-| `tools/occ/`（工作区根） | `AGENTS.md` 统一索引、`docs/`（含指向本指南的 `docs/ai`）、`runtime/` |
-| `tools/occ/src/` | **Git 真源**：代码、`CLAUDE.md`、本指南 `docs/ai/`、测试 |
-| `tools/cao/` | 姊妹仓：编排文档与 profile |
+| `/Users/chenyingzhuang/work/assets/occ`（工作区根，**非** Git 仓库） | `AGENTS.md`、`docs/`（分析与 `docs/ai` 链接）、`runtime/`、`mcp/` |
+| `src/` | **Git 真源**：代码、`CLAUDE.md`、`AGENTS.md`、本指南、测试 |
+| `src/docs/ai/` | 本指南与 `roles/`。工作区 `docs/ai` 是指向这里的链接，**不是**第二份正文，也不是旧指南转指 |
+
+```
+occ/                          # 工作区，无 .git
+├── AGENTS.md                 # 外层薄索引（Git 外）
+├── docs/
+│   ├── ai -> ../src/docs/ai  # 唯一正文的访问链接
+│   └── *.md                  # 分析笔记，不是协同规则
+├── runtime/                  # 本机 CLI 产物
+└── src/                      # Git 根
+    ├── AGENTS.md
+    ├── CLAUDE.md
+    └── docs/ai/
+        ├── README.md
+        └── roles/
+```
+
+工作区根的 `AGENTS.md` 不在 Git 里。改托底红线时与 `src/AGENTS.md` 一起改。不把 `runtime/`、`logs/`、分析长文或业务文档搬进 `docs/ai/`。
 
 ---
 
-## §3 授权与红线
+## §3 文档职责边界/SSOT
 
-- **密钥**：只在 `~/.occ/`（如 `provider-profiles.json`）；**禁止**写入任一仓库。
-- **代理**：默认 `OCC_PROXY_MODE=none`；不要让 occ 登录 Claude 订阅 OAuth。
-- **路径隔离**：配置路径必须经 `src/config/paths.ts`（在本仓即 `config/paths.ts`）派生；禁止硬编码 `~/.claude` / `~/.occ` 字面量。
-- **验收**：编码任务完成前 `bun run precheck` 须零错误（含会改写文件的 `biome check --fix`）。
-- **ai-work**：不修改 `ai-work-spec` 共享件；跨 CLI 协同走 peer/dispatch，不另造第二套。
-- **CAO explorer**：目录信任门禁阻断时改用 `occ` / `developer` profile。
-- **姊妹仓**：见 [`rules/cao-sync.md`](rules/cao-sync.md)。
-
----
-
-## §4 环境入口
-
-| 项 | 位置 / 命令 |
+| 文档 | 职责 |
 |---|---|
-| 全局 CLI | `occ`、`occ-agent`、`occ-mcp`；CAO：`cao-team` |
-| Provider 档案 | `deepseek` / `qwen` / `zhipu` / `kimi` → `cao/docs/providers-and-models.md` |
-| Runtime | 工作区 `runtime/VERSION.txt`；farm：`~/.occ/runtime/` |
-| 调试 | `OCC_RUNTIME=node\|bun\|auto`；Remote Control 建议 Node |
-| 工作目录 | CAO / `occ-agent -C` 须业务仓**绝对路径** |
+| `docs/ai/README.md`（本文件） | AI 协同规则、阅读入口、任务路径、验收入口 |
+| `docs/ai/roles/` | 已启用角色的职责与边界。方法论权威是 ai-work `规范/10`，手册不重复论证 |
+| 工作区 `AGENTS.md` 与 `src/AGENTS.md` | 薄索引：定位、读取动作、托底红线。不写工作流正文 |
+| `src/CLAUDE.md` | 工程细节真源，按章节读 |
+| `src/CONTRIBUTING.md` | 提交、PR、仓库内工作流 |
+| Git 根 `docs/zh/features/providers.md` | Provider 配置说明 |
+| 工作区 `docs/*.md` | 分析与证据，不是现行规则。笔记里的旧编排描述不要当成立项依据 |
+
+AI 协作规则只改本文件或其指向的那一份。指针文件不承载第二份规则。文档站 `docs.json` 的 navigation 未收录 `docs/ai/`，内部协作材料不进入对外文档页。
 
 ---
 
-## §5 验收入口
+## §4 任务进入方式 + 任务工作流（简版）
 
-- 代码：`bun run precheck`（在 `src/` 下）。
-- 单测：`bun test <path>`。
-- Remote Control：`occ remote-control`；证据见分析文档 §10.11。
-- 仅改 AI 入口文档：静态核对本入口即可；改代码时仍跑 precheck。
+L2 只决定长期有角色册和本指南。一条任务走哪条路径，看 §11，不看档位。
 
----
+### 4.1 接到任务时
 
-## §6 档案与网络（摘要）
+1. 按顶部接活入口读公共必读和本阶段材料。
+2. 确认任务边界：做什么、不做什么、验收是什么。边界不清先问，再改。
+3. 先读 §5 与 §10，再动手。
+4. 按 §11 选定路径。要派工时用 §9 的清单，一条派单一个阶段。
+5. 编码任务的工作目录以 `src/` 为 Git 根。`occ-agent -C` 用目标仓的绝对路径。
 
-完整表以 **`cao/docs/providers-and-models.md`**、**`cao/docs/occ-for-cao.md`** 为准。
+### 4.2 执行阶段
 
-- 默认便宜编码：`deepseek`；智谱走 Coding Plan 地址；少用中转。
-- `occ-agent --activate <名>` 会写 settings；**CAO worker 勿用这条切模型**。
-- `OCC_PROXY_MODE=none|selective|all`。
+1. **认领** — 确认可修改范围。读到某文件不等于可以改它。
+2. **执行** — 按已定方案落地。有副作用先说明。
+3. **自检** — 按 §10 核对，并留下真实命令输出。
+4. **收尾** — 直达路径凭自检实数收口。其余路径完成 §11 要求的评审后再收口。报告做了什么、产物在哪、遗留什么。
 
----
+### 4.3 门控节点
 
-## §7 角色路由
-
-| 职责框架名 | 本项目称呼 | 手册 |
+| 节点 | 触发条件 | 操作 |
 |---|---|---|
-| pm | 主控 | [`roles/pm.md`](roles/pm.md) |
-| executor | 实现 / CAO occ worker | [`roles/executor.md`](roles/executor.md) |
-| reviewer | 评审 | [`roles/reviewer.md`](roles/reviewer.md) |
+| 编码完成 | 改了 `src/` 下的代码 | 在 `src/` 执行 `bun run precheck`，零错误 |
+| 独立评审 | §11 的加强或严格 | 换模型或换会话，不用实现方自评代替 |
+| 直达收口 | §11 直达条件全部满足 | 自检实数即可，不为此硬派 reviewer |
 
-临时角色只写在任务或派单中，不建册。方法论权威：ai-work `规范/10`；手册不重复论证。
+无任务文目录。方案级裁定留在派单或 PR（理由、放弃方案、影响面）。
 
 ---
 
-## §8 派工阅读清单模板
+## §5 固定约定
 
-```text
+### 技术栈与环境
+
+- **语言 / 运行时：** TypeScript。Bun（`engines.bun >= 1.3.11`）。构建产物也可以用 Node 跑。
+- **包管理：** `bun` / `bunx`。不要把 `npx` 当默认。
+- **测试：** `bun:test`。单测 `bun test <path>`。
+- **新依赖：** 本指南不禁止，但必须在改动说明里写清理由，不顺手加包。
+- **全局命令：** `occ`、`occ-agent`、`occ-mcp`。
+- **调试：** `OCC_RUNTIME=node|bun|auto`。Remote Control 建议 Node。
+- **Runtime：** 工作区 `runtime/VERSION.txt`；farm：`~/.occ/runtime/`。
+
+### 命名
+
+- 提交说明：Conventional Commits（`feat` / `fix` / `docs` / `chore` / `refactor`），说明用中文。细节见 `CONTRIBUTING.md`。
+- 代码风格以仓库 Biome / TypeScript 配置为准，不在本指南另写一套。
+
+### 档案与网络（摘要）
+
+细节以 `CLAUDE.md` 的 Multi-API 和 Git 根 `docs/zh/features/providers.md` 为准。
+
+- 默认便宜编码：`deepseek`。智谱走 Coding Plan 地址。千问登记名是 `qwen`（通义千问），订阅套餐走 Token Plan 主机（`token-plan.maas.qianwenaiapi.com`），编码默认千问文本模型。少用中转。
+- `occ-agent --activate <名>` 会写全局 settings。不要用它做临时切模型。
+- `OCC_PROXY_MODE=none|selective|all`。默认 `none`。
+
+### 硬性红线
+
+完整清单见 §10。最高优先级：
+
+1. **密钥**只在 `~/.occ/`（如 `provider-profiles.json`），**禁止**写入仓库。
+2. **路径隔离：** 配置路径必须经 `src/config/paths.ts`（在 Git 根即 `config/paths.ts`）派生。禁止硬编码 `~/.claude` / `~/.occ` 字面量。
+3. **代理：** 默认 `OCC_PROXY_MODE=none`。不要让 occ 登录 Claude 订阅 OAuth。
+4. **验收：** 编码任务完成前 `bun run precheck` 须零错误（含会改写文件的 `biome check --fix`）。
+5. **ai-work：** 不修改 `ai-work-spec` 共享件。跨 CLI 协同走 peer / dispatch，不另造第二套。
+
+---
+
+## §6 新会话启动话术
+
+新会话先按本文件顶部的接活阅读入口读公共必读，再看当前任务。无任务时只建立项目地图。
+
+```
+先读 docs/ai/README.md 的接活阅读入口，以及公共必读 §1、§2、§3、§5、§10。
+有具体任务时再读本阶段角色手册、任务依据、直接依赖和验收。
+派工工人先按本阶段清单阅读，可自行补读，不要为了解项目通读全仓或 CLAUDE.md。
+路径基准：工作区根 /Users/chenyingzhuang/work/assets/occ；Git 根是其中的 src/。
+```
+
+从 Git 根开工时，指南路径仍是 `docs/ai/README.md`。从工作区开工时，经 `docs/ai` 链接到达同一文件。
+
+---
+
+## §7 对外能力面板
+
+本项目由本机使用者消费。下表以外的内部模块、未文档化 flag、本机 `runtime/` 目录布局，都不构成对外承诺。
+
+### 能力清单
+
+| 能力 | 输入 | 输出 | 稳定性 |
+|---|---|---|---|
+| `occ` | 终端参数 / REPL | 编码会话 | 稳定（本机 CLI） |
+| `occ-agent` | 无头参数、`-C` 绝对路径 | 一次代理运行 | 稳定。`--activate` 会写全局 settings，不作临时切模型 |
+| `occ-mcp` | MCP 客户端 | MCP 工具面 | 稳定 |
+| `occ remote-control` | 本机配置 | headless bridge | 行为变更需按分析文档 §10.11 留证据 |
+| npm `@sweetcornna/open-claude-code` | 安装 | `occ` 等 bin | 稳定。无 scope 包名不要用 |
+
+变更通知：用户可见变更写 Git 根的 `CHANGELOG.md`（工作区路径 `src/CHANGELOG.md`）。
+
+### 消费方须知
+
+- 依赖前看上表稳定性。Remote Control 不要当成无需验收的开箱能力。
+
+### 不对外承诺的内容
+
+- `runtime/`、`runtime.bak-*`、`~/.occ/runtime/` 的本机替换布局。
+- `~/.occ/` 内密钥与档案文件的内部格式。
+- `docs/ai/`、分析笔记、源码内部路径。
+
+---
+
+## §8 与其它工作空间/项目的关系
+
+```
+ai-work-spec（协同规范，只读）
+        │
+        ▼
+       occ ──CLI──► 本机使用者
+```
+
+| 关系 | 项目 | 内容 |
+|---|---|---|
+| 本项目依赖 | ai-work-spec（`/Users/chenyingzhuang/work/assets/ai-work-spec`） | 协同规范与技能。只消费，不改共享件 |
+| 被依赖 | 本机使用者 | §7 的 CLI 与 npm 包 |
+
+### 跨项目变更规则
+
+- 不修改 ai-work-spec 的共享件。规范缺陷按该库的问题登记处理。
+- 档案、模型、端点和启动器只维护在本项目与 `~/.occ/`。不因旧笔记去改其它仓。
+
+---
+
+## §9 给 AI 的标准 prompt 模板
+
+### 通用起手式
+
+```
+你是本项目的<pm|executor|reviewer|临时角色>。
+先读 docs/ai/README.md 顶部接活阅读入口与公共必读（§1、§2、§3、§5、§10）。
+任务：<做什么、不做什么>
+可修改范围：<目录或文件>
+验收：<命令或标准>
+完成后报告：做了什么、产物在哪、遗留问题、验证命令的真实结果。
+```
+
+### 派工阅读清单（一个角色、一个阶段）
+
+```
 角色：pm | executor | reviewer | 临时:<名>
 阶段：<一步>
-公共必读：docs/ai/README.md §接活阅读入口 + §1–§5
+公共必读：docs/ai/README.md 接活阅读入口 + §1、§2、§3、§5、§10
 角色必读：docs/ai/roles/<role>.md 或派单内临时说明
 任务依据：<任务说明 / issue / PR>
 直接依赖：<文件或 CLAUDE.md 章节>
-条件补读：<触发 → 路径>（如 CAO → docs/ai/rules/cao-sync.md）
+条件补读：<触发 → 路径>（如 Provider → CLAUDE.md Multi-API）
 可修改范围：<目录/文件>
 验收：<命令或标准>
 说明：清单外可自行查证；无阅读审批。
 ```
 
-无专用派工装配脚本；用全局 `dispatch.sh` 时把上表写入派单。不要把 `CLAUDE.md` 全文或分析长文嵌进提示。
+路径基准写明是工作区根还是 `src/`。不要把 `CLAUDE.md` 全文或分析长文嵌进提示。无专用派工装配脚本；用全局 `dispatch.sh` 时把上表写入派单。
+
+### 按任务类型
+
+**实现：**
+
+```
+任务类型：实现
+需求：<行为变化>
+影响范围：<预计文件>
+可修改范围：<路径>
+验收：src/ 下 bun run precheck 零错误；相关单测 bun test <path>
+```
+
+**缺陷修复：**
+
+```
+任务类型：缺陷修复
+现象与复现：<步骤>
+预期：<正确行为>
+已排除：<不要重查的方向>
+验收：能证明该现象消失的命令或测试
+```
+
+**文档：**
+
+```
+任务类型：文档
+更新范围：<文件与章节>
+原因：<为什么改>
+验收：静态核对入口、相对链接和占位符；不改代码则不跑 precheck
+```
+
+**评审：**
+
+```
+任务类型：独立评审
+对照：<方案与验收>
+证据：<diff、命令输出>
+限制：不替实现方改设计；只给出通过/不通过和问题清单
+```
 
 ---
 
-## §9 迁移与版本记录
+## §10 验证清单/红线
 
-### 2026-10-18（二次：统一 docs/ai）
+### 交付前验证清单
 
-| 旧路径 / 要求 | 新落点 |
+- [ ] 已读接活入口要求的公共必读和本阶段材料
+- [ ] 未改可修改范围之外的文件；密钥未入库
+- [ ] 改了 `src/` 代码：`bun run precheck` 零错误（在 `src/` 下）
+- [ ] 需要单测时：`bun test <path>` 的输出是这次运行的
+- [ ] 改了档案、模型、端点或启动器：密钥仍只在 `~/.occ/`，并对照了 `CLAUDE.md` Multi-API
+- [ ] 只改 AI 入口文档：静态核对了入口、链接和章节；未声称跑过 precheck
+- [ ] Remote Control 行为变更：有分析文档 §10.11 所指的证据，或写明未验证
+- [ ] 报告含：做了什么、产物在哪、遗留问题、哪些项未验证
+
+### 硬性红线
+
+1. 不读清楚就改。路径相关代码先读 `CLAUDE.md`「路径与隔离不变式」。
+2. 技术栈、依赖和验收以本文件与 `CLAUDE.md` 为准。不清楚先问。
+3. 没有验证输出，不声称完成、修复或测试通过。
+4. 不写任务范围外的文件。副作用先说明。
+5. 密钥不进仓库。配置路径不硬编码 `~/.claude` / `~/.occ`。
+6. 默认 `OCC_PROXY_MODE=none`。不用 occ 登录 Claude 订阅 OAuth。
+7. 不修改 ai-work-spec 共享件。
+
+---
+
+## §11 任务派工选型（轻量版）
+
+先按风险选路径，再为路径里实际需要的角色选能力。项目是 L2，不表示高风险任务可以少步骤，也不表示小改必须走完整角色链。
+
+### 任务执行路径
+
+| 路径 | 触发条件 | 必需阶段 |
+|---|---|---|
+| **直达** | 下面四条同时成立：边界清楚；影响面小且可回退；当前会话能直接验证；不触及路径隔离、密钥、代理、OAuth、档案/模型/端点/启动器、Remote Control | 执行 → 自检 |
+| **常规** | 模块内功能或缺陷，没有上表硬风险 | 执行 → 自检 → 需要时常规评审 |
+| **加强** | 跨模块，或有实质设计判断 | 方案确认 → 实现 → 独立评审 → 测试 |
+| **严格** | 路径隔离、密钥/代理、档案与端点、Remote Control 行为、不可逆的 runtime 替换 | 设计 → 预评审 → 实现 → 评审 → 独立复核 |
+
+命中多条时取更高的一条。直达必须四条低风险条件全部成立。上表阈值沿用现有角色手册里的风险判断，仍待人确认是否要收紧或放宽。
+
+修订轮次：同一问题超过派单约定轮次仍未闭环，停手升级，不机械再派一轮。派单没写轮次时，不自行再开一轮。
+
+### 能力档位
+
+| 任务 | 特征 | 档位 |
+|---|---|---|
+| 机械、有样板 | 步骤清楚，出错可立刻看出来 | 轻量 |
+| 模块内实现或缺陷 | 要读上下文，改动可逆 | 标准 |
+| 架构、跨仓、路径隔离、安全 | 判断错的代价高 | 强推理 |
+| 拆任务、写派单、收口 | 主控 | 强推理 |
+
+具体模型名以全局模型路由和当时可用通道为准，不在本指南写死。
+
+### 本项目偏好
+
+- 默认便宜编码档案是 `deepseek`。智谱、Kimi、Qwen 的用法以 Git 根 `docs/zh/features/providers.md` 和 `CLAUDE.md` Multi-API 为准。
+- 实现与评审使用不同模型。独立评审至少换会话。
+- 不确定档位时先用标准档。路径升格、能力不够或角色变化时重新路由，并记下原因。
+
+### 角色
+
+| 职责框架名 | 本项目称呼 | 手册 |
+|---|---|---|
+| pm | 主控 | [`roles/pm.md`](roles/pm.md) |
+| executor | 实现 | [`roles/executor.md`](roles/executor.md) |
+| reviewer | 评审 | [`roles/reviewer.md`](roles/reviewer.md) |
+
+临时角色只写在任务或派单中，不建册。低风险直达可以由当前主控会话按 executor 纪律做完并自检，不为此单开 PM 和 reviewer。
+
+---
+
+## §12 维护与演进
+
+### 维护责任
+
+- 本文件由项目主控维护。接活的 AI 可以改，但要保留既有规则，并在下面的版本记录写一行。
+- 改章节编号或公共必读时，同时改 `roles/` 里指向本章的句子，以及仍有效的派工清单。
+- 不把业务代码规范从 `CLAUDE.md` 搬进本文件。
+
+### 必须更新本文件的情况
+
+- 目录或双根访问方式变了
+- 技术栈、红线或验收命令变了
+- §7 的对外能力增删
+- §8 的仓路径或依赖关系变了
+- 任务路径阈值或角色映射变了
+
+### 何时考虑升到 L3
+
+当前保持 L2。出现下面任一情况，先给人确认再升，不在普通任务里顺手加任务文体系：
+
+- 需要长期的任务文、状态机和体量预算
+- 预评审和独立复核要变成稳定门禁，而不只是按任务临时加
+
+### 版本记录
+
+路径：对齐 L2 章节集；方式：直接；原因：单写者文档整理，规则必须保全；本阶段验收：落地清单的文件、章节、占位符和引用。
+
+| 日期 | 变更 |
 |---|---|
-| `docs/AI任务指南.md` | **`docs/ai/README.md`**（本文件）；旧入口已删除，不保留转指 |
-| 根 `AGENTS.md` | 仍薄索引，改指 `docs/ai/README.md` |
-| §7 表内角色（无分册） | **`docs/ai/roles/{pm,executor,reviewer}.md`** |
-| CAO 姊妹仓同步（散落 AGENTS/cursor） | **`docs/ai/rules/cao-sync.md`** |
-| 2026-10-18 首次分层阅读 | 沿用：公共/条件阅读、无全文强制 `CLAUDE.md` |
+| 2026-10-24 | 按使用者决定，现行规则不再包含已停用的外部编排仓。删除 `docs/ai/rules/cao-sync.md` 与工作区 `.cursor/rules/cao-sibling.mdc`。Provider 说明改指本仓 `docs/zh/features/providers.md`。 |
+| 2026-10-24 | 在不覆盖既有规则的前提下，把指南收成 L2 的 §1–§12。公共必读改为接活入口 + §1 + §2 + §3 + §5 + §10。`docs/ai` 链接保持为 Git 内唯一正文的访问方式。 |
+| 2026-10-18 | 统一到 `docs/ai/README.md`。角色册迁入 `docs/ai/roles/`。当时的编排同步分册后来已删除。删除 `docs/AI任务指南.md`，不留转指。 |
 
-- **生效**：新会话与后续派单用本入口；运行中工人本棒沿原派单，续接时补本阶段变化。
-- **旧入口**：`docs/AI任务指南.md` 已删除。
-- **回退**：还原 `src/docs/ai/`、根 `AGENTS.md`、兼容指针（git / 备份）。
-- **工具限制**：Claude Code 在 `src/` 下仍可能自动注入整份 `CLAUDE.md`；进一步减负需另开分册任务。
+2026-10-18 的旧章节对应关系（历史，不再当导航）：旧 §1 定位 → §1；旧 §2 双根 → §2；旧 §3 红线 → §5 / §10；旧 §4 环境 → §5；旧 §5 验收 → §10；旧 §6 档案摘要 → §5；旧 §7 角色 → §11；旧 §8 派工清单 → §9；旧 §9 版本记录 → §12。
+
+- **生效：** 新会话与之后的派单用本入口。已经在跑的工人本棒沿原派单，续接时改读新章节。
+- **回退：** `src/` 内用 git 还原 `docs/ai/`、`AGENTS.md`、`CLAUDE.md` 顶部阅读说明。工作区根 `AGENTS.md` 不在 Git 里，需手工还原。
+- **未验证：** 未观察 Claude Code、Cursor、occ 是否在运行时真正加载了 `@AGENTS.md` 或工作区索引。文件存在和链接不等于自动加载。
+- **工具限制：** Claude Code 在 `src/` 下仍可能注入整份 `CLAUDE.md`。进一步减负另开任务。
